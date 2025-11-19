@@ -1,0 +1,49 @@
+body {
+    font-family: Arial;
+    margin: 0;
+    padding: 0;
+}
+
+.nav-bar {
+    background: #003366;
+    padding: 12px;
+}
+
+.nav-bar a {
+    color: white;
+    margin-right: 20px;
+    text-decoration: none;
+}
+
+.main-container {
+    padding: 20px;
+}
+
+.btn-primary {
+    background: #0066cc;
+    color: white;
+    padding: 6px 12px;
+    border: none;
+}
+
+.btn-primary:disabled {
+    background: gray;
+}
+
+.options-list {
+    background: #f3f3f3;
+    padding: 10px;
+    border: 1px solid #ccc;
+}
+
+.option-item {
+    display: block;
+    padding: 4px 0;
+}
+
+.progress-box {
+    background: #f9f9f9;
+    border: 1px solid #ccc;
+    padding: 8px;
+    width: 300px;
+}

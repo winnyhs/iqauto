@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h2>분석 실행</h2>
+
+<label>Run Count:</label>
+<input id="run_count" type="text" value="10" style="width:60px;">
+<button id="btn_start" onclick="startAnalysis()" class="btn-primary">시작</button>
+
+<hr>
+
+<h3>옵션 목록</h3>
+
+<div class="options-list">
+{% for opt in options %}
+  <label class="option-item">
+    <input type="checkbox" id="{{opt.id}}" {% if opt.default %}checked{% endif %}>
+    {{opt.id}} — {{opt.label}}
+  </label><br>
+{% endfor %}
+</div>
+
+<hr>
+
+<h3>진행 상황</h3>
+<div id="progress_text" class="progress-box">아직 시작되지 않음</div>
+
+{% endblock %}
