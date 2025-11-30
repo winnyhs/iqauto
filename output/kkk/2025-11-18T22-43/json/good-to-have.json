@@ -1,0 +1,28 @@
+[
+  {
+    "percentage": 34,
+    "test_id": 1,
+    "test_run_id": 4,
+    "test_case": "A",
+    "cat": "장부",
+    "subcat": "위장",
+    "description": "위 장애(또한 어떤 오래가는 정도라면 E.대장균과 일반적인 기생충을 보지 않은 것입니다)",
+    "code": "A0902016",
+    "prescription": "Stomach_disorders",
+    "part": "",
+    "fname": null
+  },
+  {
+    "percentage": 27,
+    "test_id": 1,
+    "test_run_id": 10,
+    "test_case": "A",
+    "cat": "피부",
+    "subcat": "세균",
+    "description": "무코르 무세도(이따금 과일을 그을게 하고 상품의 부패 원인과  발과 피부에서 발견되는)",
+    "code": "A0650003",
+    "prescription": "Mucor_mucedo",
+    "part": "",
+    "fname": null
+  }
+]

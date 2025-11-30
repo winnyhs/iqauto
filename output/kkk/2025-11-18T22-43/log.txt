@@ -1,0 +1,71 @@
+$ (venv)$ python main.py
+2025-11-18 22:43:09,367 [test_ctrl.py:74] Prepare the test for kkk
+2025-11-18 22:43:09,367 [test_ctrl.py:75]     output top: E:\App\Data\VSCode\quick-check\output
+2025-11-18 22:43:09,367 [test_ctrl.py:76]     user   top: E:\App\Data\VSCode\quick-check\output\kkk\2025-11-18T22-43
+2025-11-18 22:43:09,367 [test_ctrl.py:77]     html  dir : E:\App\Data\VSCode\quick-check\output\kkk\2025-11-18T22-43\html
+2025-11-18 22:43:09,367 [test_ctrl.py:78]     image dir : E:\App\Data\VSCode\quick-check\output\kkk\2025-11-18T22-43\html\image
+2025-11-18 22:43:09,367 [test_ctrl.py:79]     temp  dir : E:\App\Data\VSCode\quick-check\output\kkk\2025-11-18T22-43\html\image
+C:\py_venv\lib\site-packages\pywinauto\application.py:1085: UserWarning: 32-bit application should be automated using 32-bit Python (you use 64-bit Python)
+  warnings.warn(
+Process is running: <bound method Process.name of psutil.Process(pid=7348, name='medical.exe', status='running', started='17:41:55')>
+2025-11-18 22:43:11,642 [main.py:87] Analysis starts
+2025-11-18 22:43:11,751 [test_ctrl.py:87] === Start a new test case: tid=1: code, A
+2025-11-18 22:43:29,543 [test_ctrl.py:91] --- Start a new test run: tid=1, rid=1: (code, A)
+2025-11-18 22:43:30,167 [analysis_win_ctrl.py:116] Start waiting progress 100%: tid1 rid1
+2025-11-18 22:43:39,046 [analysis_win_ctrl.py:133] Start ocr-ing match percent: tid1 rid1
+2025-11-18 22:43:41,960 [analysis_win_ctrl.py:227] AnalysisResult(percentage=8, test_id=1, test_run_id=1, test_case='A', cat='암', subcat='암', description='암(기초적인 처방. 또한 기초적인 세트로서 일반적인 1,
+2와 3의 처방을 봅니다. 아래 다른 모든 것은 2차성이다. 그러나 형태에 따라 유용한 추가 주파수를 제공할지도 모릅니다. ', code='A0130009', prescription='Cancer', part='', fname=None)
+2025-11-18 22:43:41,965 [analysis_win_ctrl.py:253]               ==> [GOOD-TO-RECORD]
+2025-11-18 22:43:41,965 [test_ctrl.py:91] --- Start a new test run: tid=1, rid=2: (code, A)
+2025-11-18 22:43:42,605 [analysis_win_ctrl.py:116] Start waiting progress 100%: tid1 rid2
+2025-11-18 22:43:51,435 [analysis_win_ctrl.py:133] Start ocr-ing match percent: tid1 rid2
+2025-11-18 22:43:54,235 [analysis_win_ctrl.py:227] AnalysisResult(percentage=9, test_id=1, test_run_id=2, test_case='A', cat='호흡', subcat='편도선', description='편도염(편도의 염증)', code='A0949002', prescrip
+tion='Tonsillitis', part='', fname=None)
+2025-11-18 22:43:54,235 [test_ctrl.py:91] --- Start a new test run: tid=1, rid=3: (code, A)
+2025-11-18 22:43:54,895 [analysis_win_ctrl.py:116] Start waiting progress 100%: tid1 rid3
+2025-11-18 22:44:03,725 [analysis_win_ctrl.py:133] Start ocr-ing match percent: tid1 rid3
+2025-11-18 22:44:06,485 [analysis_win_ctrl.py:227] AnalysisResult(percentage=98, test_id=1, test_run_id=3, test_case='A', cat='면역', subcat='조절', description='면역계 자극작용', code='A0492007', prescription=
+'Immune_system_stimulation', part='', fname=None)
+2025-11-18 22:44:06,485 [analysis_win_ctrl.py:231]               ==> [MUST-HAVE]
+2025-11-18 22:44:06,485 [test_ctrl.py:91] --- Start a new test run: tid=1, rid=4: (code, A)
+2025-11-18 22:44:07,175 [analysis_win_ctrl.py:116] Start waiting progress 100%: tid1 rid4
+2025-11-18 22:44:16,640 [analysis_win_ctrl.py:133] Start ocr-ing match percent: tid1 rid4
+2025-11-18 22:44:19,435 [analysis_win_ctrl.py:227] AnalysisResult(percentage=34, test_id=1, test_run_id=4, test_case='A', cat='장부', subcat='위장', description='위 장애(또한 어떤 오래가는 정도라면 E.대장균과
+일반적인 기생충을 보지 않은 것입니다)', code='A0902016', prescription='Stomach_disorders', part='', fname=None)
+2025-11-18 22:44:19,435 [analysis_win_ctrl.py:250]               ==> [GOOD-TO-HAVE]
+2025-11-18 22:44:19,435 [test_ctrl.py:91] --- Start a new test run: tid=1, rid=5: (code, A)
+2025-11-18 22:44:20,115 [analysis_win_ctrl.py:116] Start waiting progress 100%: tid1 rid5
+2025-11-18 22:44:29,005 [analysis_win_ctrl.py:133] Start ocr-ing match percent: tid1 rid5
+2025-11-18 22:44:32,065 [analysis_win_ctrl.py:227] AnalysisResult(percentage=64, test_id=1, test_run_id=5, test_case='A', cat='피부', subcat='대상포진', description='헤르페스 I (2차성. 입가의 발진 주로 비 성기
+첫번째 시도 헤르페스, 일반적인)', code='A0458011', prescription='Herpes_simplex_I', part='', fname=None)
+2025-11-18 22:44:32,065 [analysis_win_ctrl.py:231]               ==> [MUST-HAVE]
+2025-11-18 22:44:32,065 [test_ctrl.py:91] --- Start a new test run: tid=1, rid=6: (code, A)
+2025-11-18 22:44:32,720 [analysis_win_ctrl.py:116] Start waiting progress 100%: tid1 rid6
+2025-11-18 22:44:41,610 [analysis_win_ctrl.py:133] Start ocr-ing match percent: tid1 rid6
+2025-11-18 22:44:44,525 [analysis_win_ctrl.py:227] AnalysisResult(percentage=11, test_id=1, test_run_id=6, test_case='A', cat='운동', subcat='손', description='표저(고름, 손가락 첨단의 감염)', code='A0353003',
+prescription='Felon', part='', fname=None)
+2025-11-18 22:44:44,525 [analysis_win_ctrl.py:253]               ==> [GOOD-TO-RECORD]
+2025-11-18 22:44:44,525 [test_ctrl.py:91] --- Start a new test run: tid=1, rid=7: (code, A)
+2025-11-18 22:44:45,180 [analysis_win_ctrl.py:116] Start waiting progress 100%: tid1 rid7
+2025-11-18 22:44:54,085 [analysis_win_ctrl.py:133] Start ocr-ing match percent: tid1 rid7
+2025-11-18 22:44:56,965 [analysis_win_ctrl.py:227] AnalysisResult(percentage=1, test_id=1, test_run_id=7, test_case='A', cat='오관', subcat='눈', description='퓨자리움 옥시스포룸(눈의 각막의 염증을 초래하고 있
+는 곰팡이균)', code='A0390003', prescription='Fusarium_oxysporum', part='', fname=None)
+2025-11-18 22:44:56,965 [analysis_win_ctrl.py:253]               ==> [GOOD-TO-RECORD]
+2025-11-18 22:44:56,965 [test_ctrl.py:91] --- Start a new test run: tid=1, rid=8: (code, A)
+2025-11-18 22:44:57,625 [analysis_win_ctrl.py:116] Start waiting progress 100%: tid1 rid8
+2025-11-18 22:45:06,515 [analysis_win_ctrl.py:133] Start ocr-ing match percent: tid1 rid8
+2025-11-18 22:45:09,390 [analysis_win_ctrl.py:227] AnalysisResult(percentage=69, test_id=1, test_run_id=8, test_case='A', cat='암', subcat='악성', description='암, 악성종양, 주사(검사)', code='A0144009', prescr
+iption='Cancer,_carcinoma,_scan', part='', fname=None)
+2025-11-18 22:45:09,390 [analysis_win_ctrl.py:231]               ==> [MUST-HAVE]
+2025-11-18 22:45:09,390 [test_ctrl.py:91] --- Start a new test run: tid=1, rid=9: (code, A)
+2025-11-18 22:45:10,055 [analysis_win_ctrl.py:116] Start waiting progress 100%: tid1 rid9
+2025-11-18 22:45:18,975 [analysis_win_ctrl.py:133] Start ocr-ing match percent: tid1 rid9
+2025-11-18 22:45:21,985 [analysis_win_ctrl.py:227] AnalysisResult(percentage=60, test_id=1, test_run_id=9, test_case='A', cat='피부', subcat='모낭', description='모낭염, 뜨거운 통(작은 여드름)', code='A0373001'
+, prescription='Folliculitis,_hot-tub', part='', fname=None)
+2025-11-18 22:45:21,985 [analysis_win_ctrl.py:231]               ==> [MUST-HAVE]
+2025-11-18 22:45:21,985 [test_ctrl.py:91] --- Start a new test run: tid=1, rid=10: (code, A)
+2025-11-18 22:45:22,650 [analysis_win_ctrl.py:116] Start waiting progress 100%: tid1 rid10
+2025-11-18 22:45:31,620 [analysis_win_ctrl.py:133] Start ocr-ing match percent: tid1 rid10
+2025-11-18 22:45:34,395 [analysis_win_ctrl.py:227] AnalysisResult(percentage=27, test_id=1, test_run_id=10, test_case='A', cat='피부', subcat='세균', description='무코르 무세도(이따금 과일을 그을게 하고 상품의
+부패 원인과  발과 피부에서 발견되는)', code='A0650003', prescription='Mucor_mucedo', part='', fname=None)
+2025-11-18 22:45:34,395 [analysis_win_ctrl.py:250]               ==> [GOOD-TO-HAVE]

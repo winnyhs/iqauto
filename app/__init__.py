@@ -8,7 +8,7 @@ def create_app():
     app = Flask(__name__)
 
     # FRONTEND 등록
-    app.register_blueprint(frontend_bp)
+    app.register_blueprint(frontend_bp, url_prefix="/ui")
 
     # BACKEND 등록
     app.register_blueprint(backend_bp, url_prefix="/api")

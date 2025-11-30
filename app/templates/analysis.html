@@ -64,10 +64,10 @@
     <label class="option-item">
       <input
         type="checkbox"
-        id="{{opt.id}}"
+        id="{{opt.label}}"
         data-default="{{ '1' if opt.default else '0' }}"
         {% if opt.default %}checked{% endif %}
-      >{{opt.id}} — {{opt.label}}
+      >{{opt.label}}
     </label>
   {% endfor %}
 </div>
@@ -154,7 +154,7 @@
       }
 
       // 기대: {"report_url": "/ui/analysis/status?run_id=..."}
-      let data = null;
+      data = null;
       const ct = res.headers.get('content-type') || '';
       if (ct.indexOf('application/json') >= 0) data = await res.json();
 

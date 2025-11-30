@@ -1,3 +1,4 @@
+from ..common.log import logger
 import json, os
 from flask import Blueprint, render_template, request
 
@@ -24,16 +25,24 @@ def load_options():
         print("ERROR: %s" % e)
         return {"test_option": [], "user_profile": []}
 
-@frontend_bp.route("/ui/analysis")
+@frontend_bp.route("/analysis")
 def analysis_page():
-    options = load_options()  # 기존 함수
+    logger.info("=== GET /ui/analysis")
+    options = load_options()
     return render_template("analysis.html", options=options)
 
-@frontend_bp.route("/ui/analysis/status", methods=["GET"], endpoint="analysis_status")
+@frontend_bp.route("/analysis/status", endpoint="analysis_status")
 def analysis_status():  # url_for('frontend.analysis_status')
+    logger.info("=== GET /ui/analysis/status")
     run_id = request.args.get("run_id", "")
-    # Why: 이후 폴링/중간 결과 바인딩을 위해 run_id 전달
-    return render_template("analysis_status.html", run_id=run_id)
+    options = {
+        "run_id": run_id,
+        "user_profile": json.loads(request.args.get("user_profile", "null")),
+        "test_option": json.loads(request.args.get("test_option", "[]")),
+    }
+    logger.info("options: %s, %s, %s", options["run_id"], 
+            options["user_profile"], options["test_option"])
+    return render_template("analysis_status.html", options=options)
 
 
 
@@ -42,18 +51,18 @@ def analysis_status():  # url_for('frontend.analysis_status')
 
 
 @frontend_bp.route("/")
-@frontend_bp.route("/ui/customer")
+@frontend_bp.route("/customer")
 def customer_page():
     return render_template("customer.html")
 
-@frontend_bp.route("/ui/result")
+@frontend_bp.route("/result")
 def result_page():
     return render_template("result.html")
 
-@frontend_bp.route("/ui/prescribe")
+@frontend_bp.route("/prescribe")
 def prescribe_page():
     return render_template("prescribe.html")
 
-@frontend_bp.route("/ui/prescribe_view")
+@frontend_bp.route("/prescribe_view")
 def prescribe_view_page():
     return render_template("prescribe_view.html")
