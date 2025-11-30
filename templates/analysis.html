@@ -1,0 +1,171 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<style>
+  .options-list { line-height: 1.25; }
+  .options-list::after { content: ""; display: block; clear: both; }
+  .option-item { float:left; width:20%; margin:0 0 8px 0; white-space:nowrap; }
+  .option-item input { vertical-align: middle; }
+  .btn { padding:6px 10px; border:1px solid #bbb; border-radius:8px; background:#f5f5f5; cursor:pointer; }
+  .btn + .btn { margin-left:6px; }
+  .row { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; }
+  .row > * { margin:2px 0; }
+  .inline-label { min-width: 100px; font-weight: 600; }
+
+  #blocker { position: fixed; inset: 0; display: none; background: rgba(0,0,0,.35); z-index: 9999; }
+  #blocker .modal {
+    position: absolute; left: 50%; top: 30%; transform: translate(-50%, -30%);
+    background: #fff; border-radius: 12px; padding: 20px; min-width: 320px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.2); text-align: center;
+  }
+  .spinner { width: 28px; height: 28px; border: 3px solid #ddd; border-top-color: #888; border-radius: 50%;
+    margin: 0 auto 12px; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hint { color:#555; font-size: 13px; }
+</style>
+
+<h2>실행 옵션</h2>
+
+<div class="row">
+  <label class="inline-label" for="user_profile">User Profile</label>
+  <select id="user_profile" style="min-width:260px;">
+    {% if options.user_profile and options.user_profile|length > 0 %}
+      {% for u in options.user_profile %}
+        <option
+          value="{{ loop.index0 }}"
+          data-name="{{ u.name }}"
+          data-bdate="{{ u.bdate }}"
+          data-sex="{{ u.sex }}"
+          data-weight="{{ u.weight }}"
+          data-height="{{ u.height }}"
+          {% if loop.first %}selected{% endif %}
+        >{{ u.name }}, {{ u.bdate }}, {{ u.sex }}</option>
+      {% endfor %}
+    {% else %}
+      <option value="" selected disabled>프로필 없음</option>
+    {% endif %}
+  </select>
+
+  <label class="inline-label" for="run_count">Run Count</label>
+  <input id="run_count" type="text" value="10" style="width:60px;">
+  <button id="btn_start" onclick="startAnalysis()" class="btn-primary">시작</button>
+</div>
+
+<hr>
+
+<h3>테스트 항목</h3>
+<div style="margin-bottom:10px;">
+  <button class="btn" onclick="selectNone()">전체 해제</button>
+  <button class="btn" onclick="selectDefaults()">기본값만</button>
+</div>
+
+<div class="options-list">
+  {% for opt in options.test_option %}
+    <label class="option-item">
+      <input
+        type="checkbox"
+        id="{{opt.label}}"
+        data-default="{{ '1' if opt.default else '0' }}"
+        {% if opt.default %}checked{% endif %}
+      >{{opt.label}}
+    </label>
+  {% endfor %}
+</div>
+
+<hr>
+
+<h3>진행 상황</h3>
+<div id="progress_text" class="progress-box">아직 시작되지 않음</div>
+
+<div id="blocker" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="processing">
+    <div class="spinner"></div>
+    <div style="font-weight:600; margin-bottom:6px;">백엔드 응답을 기다리는 중…</div>
+    <div class="hint">보통 10–30초 정도 소요됩니다. 이 동안 입력은 비활성화됩니다.</div>
+  </div>
+</div>
+
+<script>
+  function selectNone() {
+    var boxes = document.querySelectorAll('.options-list input[type="checkbox"]');
+    for (var i = 0; i < boxes.length; i++) boxes[i].checked = false;
+  }
+  function selectDefaults() {
+    var boxes = document.querySelectorAll('.options-list input[type="checkbox"]');
+    for (var i = 0; i < boxes.length; i++) {
+      boxes[i].checked = boxes[i].getAttribute('data-default') === '1';
+    }
+  }
+  function getSelectedProfile() {
+    var el = document.getElementById('user_profile');
+    var opt = el && el.options[el.selectedIndex];
+    if (!opt) return null;
+    return {
+      index: Number(opt.value),
+      name: opt.getAttribute('data-name'),
+      bdate: opt.getAttribute('data-bdate'),
+      sex: opt.getAttribute('data-sex'),
+      weight: Number(opt.getAttribute('data-weight')),
+      height: Number(opt.getAttribute('data-height'))
+    };
+  }
+  function collectPayload() {
+    var runCount = parseInt(document.getElementById('run_count').value, 10);
+    if (!isFinite(runCount) || runCount < 1) throw new Error('Run Count를 1 이상으로 입력하세요.');
+    var profile = getSelectedProfile();
+    if (!profile) throw new Error('User Profile을 선택하세요.');
+    var tests = [];
+    var boxes = document.querySelectorAll('.options-list input[type="checkbox"]:checked');
+    for (var i = 0; i < boxes.length; i++) tests.push(boxes[i].id);
+    if (tests.length === 0) throw new Error('최소 1개의 테스트 항목을 선택하세요.');
+    return { run_count: runCount, user_profile: profile, test_option: tests };
+  }
+  function setInputsDisabled(disabled) {
+    var els = document.querySelectorAll('input, select, button, textarea');
+    for (var i = 0; i < els.length; i++) els[i].disabled = disabled; // 왜: 진행 중 클릭 방지
+  }
+  function showBlocker(show) {
+    var b = document.getElementById('blocker');
+    if (!b) return;
+    b.style.display = show ? 'block' : 'none';
+    b.setAttribute('aria-hidden', show ? 'false' : 'true');
+  }
+
+  async function startAnalysis() {
+    try {
+      var payload = collectPayload();
+    } catch (e) {
+      alert(e.message || String(e)); return;
+    }
+    console.log("---", payload)
+    showBlocker(true);
+    setInputsDisabled(true);
+
+    try {
+      const res = await fetch('/api/analysis/start', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error('요청 실패: ' + t);
+      }
+
+      // 기대: {"report_url": "/ui/analysis/status?run_id=..."}
+      data = null;
+      const ct = res.headers.get('content-type') || '';
+      if (ct.indexOf('application/json') >= 0) data = await res.json();
+
+      const target = (data && data.report_url) || '/ui/analysis/status';
+      window.location.assign(target);
+    } catch (err) {
+      showBlocker(false);
+      setInputsDisabled(false);
+      alert(err.message || String(err));
+    }
+  }
+</script>
+
+{% endblock %}

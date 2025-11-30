@@ -1,0 +1,198 @@
+<!-- templates/analysis_status.html -->
+{% extends "layout.html" %}
+{% block content %}
+
+{% set run_id = options.run_id %}
+{% set profile = options.user_profile or {} %}
+{% set tests = options.test_option or [] %}
+
+<h2>분석 진행 상황</h2>
+<p>Run ID: <code id="run_id">{{ run_id }}</code></p>
+{# Jinja 변수로 바로 사용 #}
+
+
+<!-- 선택된 사용자/테스트 요약 -->
+<div id="summary" style="margin:10px 0; padding:10px; border:1px solid #ddd; border-radius:8px;">
+  <div><b>사용자:</b> <span id="prof_name"></span> 
+    (<span id="prof_sex"></span>, <span id="prof_bdate"></span>, 
+    <span id="prof_height"></span>cm / <span id="prof_weight"></span>kg)</div>
+  <div style="margin-top:6px;"><b>요청 테스트:</b> <span id="tests_list"></span></div>
+</div>
+
+<!-- 결과 테이블 -->
+<style>
+  table {border-collapse: collapse; margin: 10px 0; font-size: 14px;}
+  th, td {border: 1px solid #444; padding: 4px 8px;}
+  th {background-color: #ddd;}
+</style>
+
+<table id="result_table">
+  <colgroup>
+    <col style="width: 10%; min-width: 60px;">
+    <col style="width: 10%; min-width: 60px;">
+    <col style="width: 30%; min-width: 200px;">
+    <col style="width: 5%;  min-width: 20px;">
+    <col style="width: 10%; min-width: 70px;">
+    <col style="width: 10%; min-width: 50px;">
+    <col style="width: 5%;  min-width: 20px;">
+    <col style="width: 5%;  min-width: 20px;">
+    <col style="width: 10%; min-width: 60px;">
+    <col style="width: 5%;  min-width: 50px;">
+  </colgroup>
+  <thead>
+    <tr>
+      <th>대분류</th>
+      <th>소분류</th>
+      <th>설명</th>
+      <th>%</th>
+      <th>경락</th>
+      <th>이미지</th>
+      <th>TC</th>
+      <th>Run</th>
+      <th>코드</th>
+      <th>부분</th>
+    </tr>
+  </thead>
+  <tbody id="tbody_results"></tbody>
+</table>
+
+<script>
+  // --------- 초기 데이터 복원 ----------
+  const runId = "{{ run_id }}";
+  const userProfile = {{ profile | tojson | safe }};
+  const testOption  = {{ tests  | tojson | safe }};
+  console.log("run_id :", runId);
+  console.log("userProfile:", userProfile);
+  console.log("testOption:", testOption);
+
+  // 요약 표시
+  (function renderSummary() {
+    const p = userProfile;
+    document.getElementById('prof_name').textContent   = p.name || '-';
+    document.getElementById('prof_bdate').textContent  = p.bdate || '-';
+    document.getElementById('prof_sex').textContent    = p.sex || '-';
+    document.getElementById('prof_height').textContent = (p.height ?? '-') ;
+    document.getElementById('prof_weight').textContent = (p.weight ?? '-') ;
+    const t = testOption;
+    document.getElementById('tests_list').textContent = t.length ? t.join(', ') : '(없음)';
+  })();
+
+  // --------- 결과 표시 유틸 ----------
+  const tbody = document.getElementById('tbody_results');
+  const seenSerial = new Set();
+  const allowPrefixes = ["LU","LI","ST","SP","HT","SI","BL","KI","PC","TB"]; // 10가지 접두어(필요 시 수정)
+
+  function filterMeridian(v) {
+    if (!v) return "";
+    const s = String(v);
+    for (const p of allowPrefixes) {
+      if (s.indexOf(p) === 0) return s;
+    }
+    return "";
+  }
+
+  function imgCell(img) {
+    // img는 URL 문자열 또는 배열 가능(백엔드 형식에 맞춰 유연)
+    const wrap = document.createElement('div');
+    const list = Array.isArray(img) ? img : (img ? [img] : []);
+    list.forEach(src => {
+      const im = document.createElement('img');
+      im.src = src;
+      im.style.maxWidth = '140px';
+      im.style.maxHeight = '90px';
+      im.onerror = function(){ this.style.display='none'; };
+      im.style.marginRight = '4px';
+      wrap.appendChild(im);
+    });
+    return wrap;
+  }
+
+  function appendRows(items) {
+    // items: [{ serial_id, major, minor, desc, percent, meridian, image, code, test_case_id, test_run_id, part }]
+    // serial 중복 방지 + 오름차순으로 그려진 순서 유지
+    items.sort(function(a,b){ return (a.serial_id||0) - (b.serial_id||0); });
+    for (const it of items) {
+      const sid = it.serial_id;
+      if (sid != null && seenSerial.has(sid)) continue;
+      if (sid != null) seenSerial.add(sid);
+
+      const tr = document.createElement('tr');
+
+      function tdText(v) {
+        const td = document.createElement('td');
+        td.textContent = (v == null ? "" : String(v));
+        return td;
+      }
+      const tdImg = document.createElement('td'); 
+      tdImg.appendChild(imgCell(it.image)); 
+
+      tr.appendChild(tdText(it.cat));                         // 대분류
+      tr.appendChild(tdText(it.subcat));                      // 소분류
+      tr.appendChild(tdText(it.description));                 // 설명
+      tr.appendChild(tdText(it.percent));                     // %
+      tr.appendChild(tdText(filterMeridian(it.group)));       // 경락(필터링)
+      tr.appendChild(tdImg); // 이미지
+      // tr.appendChild(tdText(it.image));
+      tr.appendChild(tdText(it.test_case_id));                  // TC
+      tr.appendChild(tdText(it.test_run_id));                   // Run
+      tr.appendChild(tdText(it.code));                          // 코드
+      tr.appendChild(tdText(it.part));                          // 부분
+
+      tbody.appendChild(tr);
+    }
+  }
+
+  // --------- 폴링(재귀 setTimeout) ----------
+  let nextSerialId = 0;            // serial_id = max(0, serial_id_end + 1)
+  let isPolling    = true;
+  let delayMs      = 15000;        // 기본 15초
+  const maxDelay   = 60000;        // 실패 백오프 상한 60초
+
+  async function tick() {
+    if (!isPolling) return;
+
+    const user_profile = userProfile;
+    const req = {
+      run_id: runId,
+      serial_id: nextSerialId,
+      user_profile: user_profile
+    };
+    console.log("Request analyzing status: serial_id=", req.serial_id);
+
+    try {
+      const r = await fetch('/api/analysis/status', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(req)
+      });
+      if (!r.ok) throw new Error(await r.text());
+      const res = await r.json();
+      // 기대 스키마:
+      // { serial_id_start, serial_id_end, user_profile, finish_flag, items: [...] }
+      if (Array.isArray(res.items) && res.items.length) {
+        console.log("    ", res.items)
+        appendRows(res.items);
+      }
+      if (typeof res.serial_id_end === 'number') {
+        nextSerialId = (res.serial_id_end|0) + 1;
+      }
+      if (res.finish_flag === true) {
+        isPolling = false;
+        return; // 종료
+      }
+      // 성공 시 지연 복구
+      delayMs = 15000;
+    } catch (err) {
+      // 실패 시 지수 백오프
+      delayMs = Math.min(maxDelay, Math.floor(delayMs * 1.5));
+      console.warn('status poll failed:', err);
+    } finally {
+      if (isPolling) setTimeout(tick, delayMs);
+    }
+  }
+
+  // 시작
+  setTimeout(tick, 0);
+</script>
+
+{% endblock %}
