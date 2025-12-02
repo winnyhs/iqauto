@@ -91,6 +91,18 @@ def safe_copy(src, dst):
     # 안전한 복사
     shutil.copy2(src, dst)
 
+def make_image_url(path): 
+    """
+    절대경로 -> /files/<rel> URL 생성.
+    루트 밖 경로는 ValueError.
+    """
+    root = os.path.normcase(os.path.realpath(FILES_ROOT))
+    ap = os.path.normcase(os.path.realpath(path))
+    if not ap.startswith(root + os.sep) and ap != root:
+        raise ValueError("path outside FILES_ROOT")
+
+    rel = os.path.relpath(ap, root).replace("\\", "/")
+    return url_for("backend.file_serve", rel=rel)
 
 # ------------------------
 # External Drives

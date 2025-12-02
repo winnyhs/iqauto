@@ -137,7 +137,7 @@
     } catch (e) {
       alert(e.message || String(e)); return;
     }
-    console.log("---", payload)
+    console.log("POST", payload)
     showBlocker(true);
     setInputsDisabled(true);
 
@@ -153,12 +153,15 @@
         throw new Error('요청 실패: ' + t);
       }
 
-      // 기대: {"report_url": "/ui/analysis/status?run_id=..."}
+      // 기대: {"report_url": "/ui/analysis/status?test_id=..."}
       data = null;
       const ct = res.headers.get('content-type') || '';
       if (ct.indexOf('application/json') >= 0) data = await res.json();
 
       const target = (data && data.report_url) || '/ui/analysis/status';
+      console.log("target:", target)
+      console.log("method:", data.method)
+      
       window.location.assign(target);
     } catch (err) {
       showBlocker(false);

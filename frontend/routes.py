@@ -34,13 +34,13 @@ def analysis_page():
 @frontend_bp.route("/analysis/status", endpoint="analysis_status")
 def analysis_status():  # url_for('frontend.analysis_status')
     logger.info("=== GET /ui/analysis/status")
-    run_id = request.args.get("run_id", "")
+    test_id = request.args.get("test_id", "")
     options = {
-        "run_id": run_id,
-        "user_profile": json.loads(request.args.get("user_profile", "null")),
+        "test_id": test_id,
+        "user_profile": json.loads(request.args.get("user_profile", "{}")),
         "test_option": json.loads(request.args.get("test_option", "[]")),
     }
-    logger.info("options: %s, %s, %s", options["run_id"], 
+    logger.info("options: %s, %s, %s", options["test_id"], 
             options["user_profile"], options["test_option"])
     return render_template("analysis_status.html", options=options)
 

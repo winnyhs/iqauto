@@ -25,7 +25,3 @@ def progress():
     return pct, False
 
 
-class Worker: 
-    def __init__(self): 
-        self.cfg = 
-        pass

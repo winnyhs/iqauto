@@ -7,6 +7,7 @@ from config.diag  import DiagTarget, PrescriptionType, VirusPolicy, Policy
 
 from common.singleton import SingletonMeta
 from common.log       import logger
+from common.json      import atomic_save_json
 from utils.analysis_result import AnalysisResult
 from utils.input_ops import (
     drag_left, click_stable_at, 
@@ -46,7 +47,7 @@ class AnalysisGridCtrl(metaclass = SingletonMeta):
         result.cat    = self.read_cell_text(self.gmap.cat_col.cell_center(row))
         result.subcat = self.read_cell_text(self.gmap.subcat_col.cell_center(row))
         result.part   = self.read_cell_text(self.gmap.part_col.cell_center(row)) 
-        result.prescription = self.read_cell_text(self.gmap.prescription_col.cell_center(row))
+        result.group = self.read_cell_text(self.gmap.prescription_col.cell_center(row))
         result.description  = self.read_cell_text(self.gmap.description_col.cell_center(row))
         return result
 
@@ -95,7 +96,7 @@ class AnalysisGridCtrl(metaclass = SingletonMeta):
 class AnalysisWinCtrl(metaclass=SingletonMeta):
     def __init__(self, win): 
         self.wmap = UIMap["analysis"]  # analysis window map
-        self.win = None # main window WindowSpecification 
+        self.win = win  # window WindowSpecification 
                         # self.win.wrapper_object() can be  DialogWrapper, WindowWrapper, ButtonWrapper, EditWrapper, 등
         
         self.grid_ctrl = AnalysisGridCtrl(self.wmap.grid)
@@ -148,14 +149,17 @@ class AnalysisWinCtrl(metaclass=SingletonMeta):
         return comp.callback(comp)
 
     def click(self, comp: Component, p: Point = None, wait: float = 0.2) -> Any:
-        # 1. Click 
+        # 1. activate the window
+        bring_to_front(self.win)
+
+        # 2. Click 
         if p: 
             click_stable_at(p[0], p[1])
         else:     
             click_stable_at(comp.c[0], comp.c[1])
         time.sleep(wait)
 
-        # 2. Run the callback
+        # 3. Run the callback
         if comp.callback: 
             return self.run_callback(comp)
         else: 
@@ -209,7 +213,7 @@ class AnalysisWinCtrl(metaclass=SingletonMeta):
 
         return False  # if other unexpected type
     
-    def add_prescription(self, match_percent: int, data: AnalysisResult) -> None:
+    def add_prescription(self, match_percent: int, data: AnalysisResult) -> AnalysisResult:
         ''' return PrescriptionType = Literal["MUST-HAVE", 
                 "GOOD-TO-HAVE", "GOOD-TO-RECORD", "VIRUS", "NEVER-MIND"]
         '''
@@ -253,7 +257,7 @@ class AnalysisWinCtrl(metaclass=SingletonMeta):
                 logger.info("\t\t ==> [GOOD-TO-RECORD]")
         
         return data
-    
+        
     def add_prescription_check(self, match_percent, # Union(int, str), 
                                test_data # Union(AnalysisResult, str)
                                ) -> AnalysisResult:
@@ -272,6 +276,22 @@ class AnalysisWinCtrl(metaclass=SingletonMeta):
         test_data.test_run_id = self.test_ctrl.rid
         test_data.test_case = self.test_ctrl.case # "A", "골격", ...
         return test_data
+
+    def update_progress(self, result: AnalysisResult, finish_flag = False) -> None: 
+        if finish_flag == True: # end of test
+            prog_data = {"finish_flag": True, "item": {}}
+        else: 
+            prog_data = {"finish_flag": True, "item": result.as_dict()}
+            path = [self.test_ctrl.make_temp_fname("progress"),
+                    self.test_ctrl.make_image_fname("match")]
+            url = [make_image_url(p) for p in path]
+            prog_data["item"]["image"] = url
+            logger.info("path -> url: %s", path, url)
+        
+        tmp_path, prog_path = self.test_ctrl.make_progress_fname()
+        atomic_save_json(prog_data, tmp_path, prog_path)
+        logger.info("Test progress is saved in %s: %s", prog_path, prog_data)
+        return
    
    # --- Run a test ---
     def run_1cat(self, test_type: str, test_case: str, iters: int = 10) -> None:
@@ -301,14 +321,14 @@ class AnalysisWinCtrl(metaclass=SingletonMeta):
             row_data = self.grid_ctrl.read_selected_row(self.test_ctrl)
 
             if isinstance(match_percent, int) and isinstance(row_data, AnalysisResult): # success
-                result = self.add_prescription(match_percent, row_data)
+                self.add_prescription(match_percent, row_data)
             else:
                 logger.error(f"Failed to collect test result: {self.test_ctrl}: {match_percent}, {row_data}") 
-                result = self.add_prescription_check(match_percent, row_data)
+                self.add_prescription_check(match_percent, row_data)
 
             # 3.3. send prescription to te front-end
-            # if self.show_prescription: 
-            #     self.feq.push_msg(result: AnalysisResult)        
+            if self.show_prescription: 
+                self.update_progress(row_data, finish = False)        
     
     def start(self, targets: Dict[str, List] = None, iters: int = 10): 
         '''Start analyzing '''
@@ -326,6 +346,12 @@ class AnalysisWinCtrl(metaclass=SingletonMeta):
             for case in test_cases: 
                 self.run_1cat(test_type, case, self.iteration)
                 time.sleep(1.0)
+        
+        # 3. Report the end of test
+        self.test_ctrl.start_1run()  # To increment test id, to update the end oof test
+
+        if self.show_prescription: 
+            self.update_progress(None, finish_flag = True) 
 
 
 

@@ -90,7 +90,7 @@ class __GlobalConfig(metaclass = SingletonMeta):
       "client_dir" : os.path.join(self.worker_top, "client"),
       "json_dir"   : os.path.join(self.worker_top, "temp", "json"),
       "program_path" : os.path.join(self.worker_top, "temp", "json", "__analyzer_program.json"),
-      "progress_path": os.path.join(self.worker_top, "temp", "json", "__analyzer_progress.jsonl")
+      "progress_dir": os.path.join(self.worker_top, "temp", "progress")
     }
     
     self.sys_drv_top = self.find_sys_dir_top()
@@ -155,18 +155,19 @@ class __GlobalConfig(metaclass = SingletonMeta):
         logger.info(json.dumps(self.ext_drv, indent=4, sort_keys=True))
 
   def clean_temp(self):
+    prog_dir = self.worker_drv["progress_dir"]
     json_dir = self.worker_drv["json_dir"]
     mdb_dir  = self.ext_drv["mdb_dir"]
-
+ 
     # Delete all under json and mdb folder 
-    for d in (json_dir, mdb_dir): 
+    for d in (prog_dir, json_dir, mdb_dir): 
       try: 
         force_delete(d) # shutil.rmtree(d)
         logger.info("%s is deleted", d)
       except Exception as e:
         logger.exception("ERROR: %s: Failed in deleting %s", e, d)
 
-    for d in (json_dir, mdb_dir):
+    for d in (prog_dir, json_dir, mdb_dir):
       try:
         os.makedirs(d)
         logger.info("%s is created", d)

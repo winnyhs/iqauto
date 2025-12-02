@@ -1,6 +1,10 @@
-from .worker import Worker
 from ..common.log import logger
-from flask import Blueprint, current_app, request, jsonify, url_for, abort
+from ..common.sys import make_image_url
+from db.config import GlobalConfig as config
+
+from flask import (Blueprint, current_app, request, 
+    jsonify, url_for, abort, send_from_directory
+)
 import datetime, json
 
 backend_bp = Blueprint("backend", __name__)
@@ -14,94 +18,99 @@ def api_analysis_start():
     try:
         data = request.get_json(force=True)
         run_count = int(data["run_count"])
-        profile = data["user_profile"]
-        tests = data["test_option"]
+        user_profile = json.dumps(data["user_profile"], ensure_ascii=False)
+        test_cases = json.dumps(tedata["test_option"], ensure_ascii=False)
 
         if run_count < 1 or not tests:
             abort(400, "invalid params")
-
-        # Trigger Quick...'s 시작함수
-        # Domain 코드의 API function 들을 어떻게 연결할 것인가... 
     except Exception as e:
         abort(400, str(e))
 
-    # 실제 작업 등록/비동기 처리 로직은 생략
-    run_id = "run-" + profile["name"] + "-" + datetime.datetime.now().strftime("%m%d%H%M%S")
-    print("run_id = %s" % run_id)
-
-    # 2. Build directory structure
-    worker = Worker()
-    current_app.config["worker"] = worker
+    # let the worker to start, here
+    # Trigger Quick...'s 시작함수
+    # Domain 코드의 API function 들을 어떻게 연결할 것인가... 
+    print("test_id = %s" % test_id)
+    # worker = Worker()
+    # current_app.config["worker"] = worker
 
     # 변경된 상태 페이지 URL로 반환
-    # (a) report_url에 JSON 쿼리로 포함 (Flask가 자동 인코딩)
+    # report_url에 JSON 쿼리로 포함 (Flask가 자동 인코딩)
     report_url = url_for(
         "frontend.analysis_status",
-        run_id=run_id,
-        user_profile=json.dumps(profile, ensure_ascii=False),
-        test_option=json.dumps(tests, ensure_ascii=False),
+        test_id=test_id,
+        user_profile=user_profile, 
+        test_cases=test_cases
     )
     return jsonify({
         "ok": True,
         "report_url": report_url,
-        "user_profile": json.dumps(profile, ensure_ascii=False),
-        "test_option": json.dumps(tests, ensure_ascii=False),
-        "run_id": run_id
+        "user_profile": user_profile,
+        "test_cases": test_cases
     })
 
 @backend_bp.route("analysis/status", methods=["POST"])
 def api_analysis_status_post():
     """
-    - 요청: { run_id, serial_id }
-    - 응답: { serial_id_start, serial_id_end, finish_flag, 
-              items:[...], session_payload:{...} }
+    - 요청: { test_id }
+    - 응답: { test_id_start, test_id_end, finish_flag, 
+              items:[...] }
         각 item은 image_files(파일명 배열)가 있을 경우 
         image(데이터URL 배열)로 변환되어 반환.
     """
     logger.info("=== POST /api/analysis/status")
     data = request.get_json(force=True)
-    run_id = data.get("run_id")
-    serial_id = int(data.get("serial_id", 0))
+    test_id = int(data.get("test_id", 0))
     user_profile = data.get("user_profile")  # 그대로 되돌려줌(요구사항)
 
-    worker = current_app.config.get("worker", None)
-    # job = RUNS.get(run_id)
-    # if not job:
-    #     abort(404, "run not found")
+    # worker = current_app.config.get("worker", None)
 
-    # # 현재까지 완료된 구간 계산
-    # all_items = job.get("items", [])
+    item_list = []
+    progress_dir = config.worker_drv["progress_dir"]
+    for sid in range(test_id, test_id + 5): 
+        progress_path = os.path.join(progress_dir, str(test_id) + '.json')
+        if not os.path.isfile(progress_path): # no more progress yet
+            test_id_end = sid - 1
+            finish_flag = False
+            break
 
-    # # 새로 보낼 아이템들만 슬라이싱(직관을 위해 filter)
-    # new_items = [it for it in all_items if (it.get("serial_id", -1) >= serial_id)]
-    # serial_id_end = job.get("serial_id_end", -1)
-    new_items = [
-        {"serial_id": serial_id, # test_ctrl.id
-        "cat": "오관", "subcat": "눈", "description": "맥립종", 
-        "percent": 50, "group": "GB 11-32", 
-        "image": [
-            "E:\App\Data\VSCode\iqa\domain\output\kkk\2025-11-18T22-43\html\image\match_tid1_rid2_A.bmp", 
-            "E:\App\Data\VSCode\iqa\domain\output\kkk\2025-11-18T22-43\html\image\progress_tid1_rid2_A.bmp"], 
-        "test_case": "A", "run_id": 2, "code": "A0010001", "part": ""
-        }, 
-        {"serial_id": serial_id + 1, 
-        "cat": "오관", "subcat": "코", "description": "정맥동염", 
-        "percent": 10, "group": "GB 11-32", 
-        "image": [
-            "E:\App\Data\VSCode\iqa\domain\output\kkk\2025-11-18T22-43\html\image\match_tid1_rid3_A.bmp", 
-            "E:\App\Data\VSCode\iqa\domain\output\kkk\2025-11-18T22-43\html\image\progress_tid1_rid3_A.bmp"], 
-        "test_case": "A", "run_id": 3, "code": "A0010001", "part": ""
-        }]
+        item = load_json(progress_path)
+        if item["finish_flag"] == True: 
+            test_id_end = sid - 1
+            finish_flag = True
+            break
 
-    return jsonify({
-        "serial_id_start": serial_id, #serial_id,
-        "serial_id_end": serial_id + 1, #serial_id_end,
-        "user_profile": user_profile,
-        "finish_flag": False, #bool(job.get("finished", False)),
-        "items": new_items
-    })
+        item_list.append(item)
+
+    progress_data = {"test_id_start": test_id, 
+                    "test_id_end": test_id_end, 
+                    "finish_flag": finish_flag,  
+                    "user_profile": user_profile, 
+                    "item": item_list}
+    for sid in range(test_id, test_id_end + 1): 
+        progress_path = os.path.join(progress_dir, str(test_id) + '.json')
+        os.remove(progress_path)
+        
+    return jsonify(progress_data)
 
 
+@backend_bp.route("/files/<path:rel>")
+def file_serve(rel_path): #: str):
+    # 안전 서빙: 루트 밖 접근 차단
+    abs_path = os.path.realpath(os.path.join(config["image_root"], rel_path))
+    image_root = os.path.realpath(config["image_root"])
+    if os.path.commonpath([image_root, abs_path]):
+        abort(403)
+
+    logger.debug("rel_path: %s", rel_path)
+    logger.debug("abs_path: %s", abs_path)
+    logger.debug("image_root: %s", image_root)
+
+    # 캐시 헤더 등은 필요 시 추가
+    directory = image_root
+    filename = os.path.relpath(abs_path, image_root)
+    image = send_from_directory(directory, filename)
+    logger.debug("    --> %s", image)
+    return image
 
 
 

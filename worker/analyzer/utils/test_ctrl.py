@@ -64,7 +64,6 @@ class _TestCtrl(metaclass=SingletonMeta):
         self.id = 0
         self.type = None
         self.case = None
-
         self.rid = 0
 
         self.match_err_cnt = 0
@@ -79,10 +78,9 @@ class _TestCtrl(metaclass=SingletonMeta):
         logger.info(f"    temp  dir : {self.config['temp_dir']}")
 
     def start_1test(self, type: str, case: str) -> None: 
-        self.id += 1
+        # self.id += 1
         self.type = type
         self.case = case
-
         self.rid = 0
         logger.info(f"=== Start a new test case: tid={self.id}: {self.type}, {self.case}")
 
@@ -109,6 +107,10 @@ class _TestCtrl(metaclass=SingletonMeta):
                          run_id: int = None, case: str = None) -> str:
         return os.path.join(self.config['image_dir'], 
                             self.make_fname(prefix, test_id, run_id, case))
+
+    def make_progress_fname(self) -> str:
+        return (os.path.join(self.config['progress_dir'], 'tmp.json'), 
+                os.path.join(self.config['progress_dir'], str(self.id) + '.json'))
     
     # Move the given file under image diectory
     def keep_temp_image(self, prefix: str) -> None:
