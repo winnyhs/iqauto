@@ -3,12 +3,12 @@
 {% block content %}
 
 {# Jinja 변수로 바로 사용 #}
-{% set test_id = options.test_id %}
+<!-- {% set test_id = options.test_id %} -->
 {% set profile = options.user_profile or {} %}
-{% set tests = options.test_option or [] %}
+{% set test_cases = options.test_cases or [] %}
 
 <h2>분석 진행 상황</h2>
-<p>Run ID: <code id="test_id">{{ test_id }}</code></p>
+<!-- <p>Run ID: <code id="test_id">{{ test_id }}</code></p> -->
 
 
 
@@ -17,7 +17,7 @@
   <div><b>사용자:</b> <span id="prof_name"></span> 
     (<span id="prof_sex"></span>, <span id="prof_bdate"></span>, 
     <span id="prof_height"></span>cm / <span id="prof_weight"></span>kg)</div>
-  <div style="margin-top:6px;"><b>요청 테스트:</b> <span id="tests_list"></span></div>
+  <div style="margin-top:6px;"><b>요청 테스트:</b> <span id="test_cases_list"></span></div>
 </div>
 
 <!-- 결과 테이블 -->
@@ -59,12 +59,12 @@
 
 <script>
   // --------- 초기 데이터 복원 ----------
-  const testId = "{{ test_id }}";
+  const testId = 1; // test_id starts from 1.  "{{ test_id }}";
   const userProfile = {{ profile | tojson | safe }};
-  const testOption  = {{ tests  | tojson | safe }};
+  const testCase  = {{ test_cases  | tojson | safe }};
   console.log("test_id :", testId);
   console.log("userProfile:", userProfile);
-  console.log("testOption:", testOption);
+  console.log("testCase:", testCase);
 
   // 요약 표시
   (function renderSummary() {
@@ -74,8 +74,8 @@
     document.getElementById('prof_sex').textContent    = p.sex || '-';
     document.getElementById('prof_height').textContent = (p.height ?? '-') ;
     document.getElementById('prof_weight').textContent = (p.weight ?? '-') ;
-    const t = testOption;
-    document.getElementById('tests_list').textContent = t.length ? t.join(', ') : '(없음)';
+    const t = testCase;
+    document.getElementById('test_cases_list').textContent = t.length ? t.join(', ') : '(없음)';
   })();
 
   // --------- 결과 표시 유틸 ----------
@@ -98,7 +98,7 @@
     const list = Array.isArray(img) ? img : (img ? [img] : []);
     list.forEach(src => {
       const im = document.createElement('img');
-      im.src = src;
+      im.src = src;     // so that /api/files/<src> be invoked
       im.style.maxWidth = '140px';
       im.style.maxHeight = '90px';
       im.onerror = function(){ this.style.display='none'; };
@@ -145,7 +145,7 @@
   }
 
   // --------- 폴링(재귀 setTimeout) ----------
-  let nextTestId = 0;          // nextTestId = test_id_end + 1
+  let nextTestId = testId;          // nextTestId = test_id_end + 1
   let isPolling  = true;
   let delayMs    = 15000;      // 기본 15초
   const maxDelay = 60000;      // 실패 백오프 상한 60초
@@ -170,8 +170,9 @@
       const res = await r.json();
       // 기대 스키마:
       // { test_id_start, test_id_end, user_profile, finish_flag, items: [...] }
+      console.log("response:  ", res)
       if (Array.isArray(res.items) && res.items.length) {
-        console.log("    ", res.items)
+        console.log("received progress:  ", res.items)
         appendRows(res.items);
       }
       if (typeof res.test_id_end === 'number') {

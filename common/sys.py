@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import ctypes, os, subprocess, shutil
 
-from common.log import logger
+from .log import logger
 
 # ------------------------
 # Process
@@ -75,6 +75,7 @@ def show_dir(path):
     subprocess.call(["cmd", "/c", "dir", path])
 
 def safe_copy(src, dst): 
+    # 파일만 복사한다. 디렉토리는 안 됨. 
     """dst가 존재하면 삭제 후 src → dst 복사 (메타데이터 유지)"""
     # dst 파일이 있으면 먼저 삭제
     if os.path.exists(dst):
@@ -91,19 +92,15 @@ def safe_copy(src, dst):
     # 안전한 복사
     shutil.copy2(src, dst)
 
-def make_image_url(path): 
-    """
-    절대경로 -> /files/<rel> URL 생성.
-    루트 밖 경로는 ValueError.
-    """
-    root = os.path.normcase(os.path.realpath(FILES_ROOT))
-    ap = os.path.normcase(os.path.realpath(path))
-    if not ap.startswith(root + os.sep) and ap != root:
-        raise ValueError("path outside FILES_ROOT")
+def rename_leaf(src, new_leaf): # rename the leaf directory/file of src
+    path = os.path.dirname(src)
+    path = os.path.join(path, new_leaf)
 
-    rel = os.path.relpath(ap, root).replace("\\", "/")
-    return url_for("backend.file_serve", rel=rel)
-
+    print("--- src: %s" % src)
+    print("--- path: %s" % path)
+    os.replace(src, path)
+    return path
+    
 # ------------------------
 # External Drives
 # ------------------------

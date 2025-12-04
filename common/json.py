@@ -12,7 +12,7 @@ def save_json(json_data, json_path):
         os.fsync(f.fileno())
 
 def atomic_save_json(json_data, tmp_path, json_path): 
-    with io.open(tmp_path, "w", encoding="utf-8") as f:
+    with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(json_data, f, ensure_ascii=False, indent=2)
         f.flush()
         os.fsync(f.fileno())

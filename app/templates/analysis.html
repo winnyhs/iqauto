@@ -60,7 +60,7 @@
 </div>
 
 <div class="options-list">
-  {% for opt in options.test_option %}
+  {% for opt in options.test_cases %}
     <label class="option-item">
       <input
         type="checkbox"
@@ -118,7 +118,7 @@
     var boxes = document.querySelectorAll('.options-list input[type="checkbox"]:checked');
     for (var i = 0; i < boxes.length; i++) tests.push(boxes[i].id);
     if (tests.length === 0) throw new Error('최소 1개의 테스트 항목을 선택하세요.');
-    return { run_count: runCount, user_profile: profile, test_option: tests };
+    return { run_count: runCount, user_profile: profile, test_cases: tests };
   }
   function setInputsDisabled(disabled) {
     var els = document.querySelectorAll('input, select, button, textarea');

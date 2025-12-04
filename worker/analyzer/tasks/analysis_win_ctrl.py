@@ -284,8 +284,6 @@ class AnalysisWinCtrl(metaclass=SingletonMeta):
             prog_data = {"finish_flag": True, "item": result.as_dict()}
             path = [self.test_ctrl.make_temp_fname("progress"),
                     self.test_ctrl.make_image_fname("match")]
-            url = [make_image_url(p) for p in path]
-            prog_data["item"]["image"] = url
             logger.info("path -> url: %s", path, url)
         
         tmp_path, prog_path = self.test_ctrl.make_progress_fname()

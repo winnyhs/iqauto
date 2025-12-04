@@ -5,7 +5,7 @@ from common.sys import choose_external_drive_name, force_delete, show_dir
 
 '''
 #--------------------------------------------------------
-# Global config hold only 
+# Global self hold only 
 # - directory structures 
 # - file pathes for data feeding
 # Directories and files are cleaned up and prepared 
@@ -13,7 +13,7 @@ from common.sys import choose_external_drive_name, force_delete, show_dir
 In case of running on E: Drive
 E:\medical\
     +-- auto_analyzer
-    |   +-- config
+    |   +-- self
     |   +-- db
     |   +-- temp
     |       +-- json
@@ -33,8 +33,8 @@ C:\Program Files (32)\auto_analyzer
     |                   # Copy(delete and then copy) its MEDICAL.mdb 
     |                   # under E:\medical\mdb
     +-- auto_analyzer.exe
-    +-- config
-    |   +-- config.py
+    +-- self
+    |   +-- self.py
     +-- db
     |   +-- data_table.json   # Exort of M_DATA table
     +-- temp
@@ -79,7 +79,10 @@ class __GlobalConfig(metaclass = SingletonMeta):
     self.db = {
       "password": "I1D2E3A4", 
       "data_table_path": os.path.join(self.db_top, "data_table.json"), 
-      "program_ddl_path": os.path.join(self.db_top, "program_ddl.json")
+      "program_ddl_path": os.path.join(self.db_top, "program_ddl.json"), 
+      
+      "user_profile_path": os.path.join(self.db_top, "user_profile.json"), 
+      "test_case_path": os.path.join(self.db_top, "test_case.json"), 
     }
     
     self.backend_top = os.path.join(self.app_top, "backend")
@@ -92,6 +95,8 @@ class __GlobalConfig(metaclass = SingletonMeta):
       "program_path" : os.path.join(self.worker_top, "temp", "json", "__analyzer_program.json"),
       "progress_dir": os.path.join(self.worker_top, "temp", "progress")
     }
+    self.test_top = None
+    self.image_top = None
     
     self.sys_drv_top = self.find_sys_dir_top()
     self.sys_drv = {
@@ -108,7 +113,7 @@ class __GlobalConfig(metaclass = SingletonMeta):
       "mdb_path": os.path.join(self.ext_drv_top, "temp", self.file["mdb_file"])
     }
 
-    self.clean_temp()
+    # self.clean_and_provision(user_profile)
 
 
   def find_sys_dir_top(self, sys_top = None): 
@@ -134,8 +139,7 @@ class __GlobalConfig(metaclass = SingletonMeta):
     else: 
       return sys_top
 
-
-  def reconfigure(self, worker_drv_name = None, ext_drv_name = None): 
+  def reconfigure_drv(self, worker_drv_name = None, ext_drv_name = None): 
     if worker_drv_name is not None: 
       if self.worker_top[0].upper() != worker_drv_name[0].upper(): 
         drive, tail = os.path.splitdrive(self.worker_top)
@@ -154,31 +158,58 @@ class __GlobalConfig(metaclass = SingletonMeta):
           self.ext_drv[i] = ext_drv_name[0] + ":" + tail
         logger.info(json.dumps(self.ext_drv, indent=4, sort_keys=True))
 
-  def clean_temp(self):
-    prog_dir = self.worker_drv["progress_dir"]
-    json_dir = self.worker_drv["json_dir"]
+  def clean_and_provision_folder(self, user_profile):
+
+    # 1. Make worker\client\<client-name>\<test-date>\{html, json} and 
+    #         worker\client\<client-name>\<test-date>\html\image
+    base = os.path.join(self.worker_drv["client_dir"], user_profile["name"])
+    os.makedirs(base, exist_ok=True)  # worker\client\kkk
+    base = os.path.join(base, user_profile["test_time"]) 
+    os.makedirs(base)  
+    logger.info("%s is created", base)
+    # Now, base directory is worker\client\kkk\2025-11-11T11-11
+
+    os.makedirs(os.path.join(base, "json"), exist_ok=True)  # worker\client\kkk\2025-11-11T11-11\json
+    os.makedirs(os.path.join(base, "html"), exist_ok=True)  # worker\client\kkk\2025-11-11T11-11\html
+    image_top = os.path.join(base, "html", "image")
+    os.makedirs(image_top) #, exist_ok=True)
+
+    # 1.2. Hang test_top and imag_top
+    self.test_top = base
+    self.image_top = image_top
+
+    # 2. Clean up worker\temp\{json, progress}
+    base = os.path.dirname(self.worker_drv["json_dir"])
+    force_delete(base)                          # delete worker\temp
+    os.makedirs(base)                           # create worker\temp
+    os.makedirs(os.path.join(base, "json"))     # worker\temp\json
+    os.makedirs(os.path.join(base, "progress")) # worker\temp\json
+    logger.info("%s is created", base)
+
+    # 3. Clean up ext_drv
     mdb_dir  = self.ext_drv["mdb_dir"]
- 
-    # Delete all under json and mdb folder 
-    for d in (prog_dir, json_dir, mdb_dir): 
-      try: 
-        force_delete(d) # shutil.rmtree(d)
-        logger.info("%s is deleted", d)
-      except Exception as e:
-        logger.exception("ERROR: %s: Failed in deleting %s", e, d)
+    try: 
+      force_delete(mdb_dir) # shutil.rmtree(d)
+      logger.info("%s is deleted", mdb_dir)
+    except Exception as e:
+      logger.exception("ERROR: %s: Failed in deleting %s", e, mdb_dir)
 
-    for d in (prog_dir, json_dir, mdb_dir):
-      try:
-        os.makedirs(d)
-        logger.info("%s is created", d)
-      except Exception as e:
-        logger.exception("ERROR: %s: Failed in creating folder %s", e, d)
+    try:
+      os.makedirs(mdb_dir)
+      logger.info("%s is created", mdb_dir)
+    except Exception as e:
+      logger.exception("ERROR: %s: Failed in creating folder %s", e, mdb_dir)
 
-    for d in (json_dir, mdb_dir): 
-      show_dir(d)
+    # for d in (json_dir, mdb_dir): 
+    #   show_dir(d)
+
+  def progress_path(self, tid): 
+    return os.path.join(self.worker_drv["progress_dir"], str(tid) + '.json')
 
 
 GlobalConfig = __GlobalConfig()
+
+
 
 if __name__ == "__main__": 
 
@@ -186,4 +217,4 @@ if __name__ == "__main__":
   # subprocess.call(r'cp .\output\must-have.json .\temp\json\must-have.json', shell=True)
   # subprocess.call(r'cp C:\Program Files (x86)\medical\MEDICAL.mdb E:\medical\temp\mdb\MEDICAL.mdb', shell=True)
 
-  GlobalConfig.reconfigure("D", "F")
+  GlobalConfig.reconfigure_drv("D", "F")

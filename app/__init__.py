@@ -13,5 +13,7 @@ def create_app():
     # BACKEND 등록
     app.register_blueprint(backend_bp, url_prefix="/api")
 
-    print("--- URL MAP:", app.url_map)
+    print("--- URL Map:")
+    print(app.url_map)
+    print("--- URL Map end")
     return app
