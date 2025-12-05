@@ -2,7 +2,7 @@ import os, base64, mimetypes
 from flask import url_for, jsonify, request, abort
 
 from common.sys import force_delete
-from db.config import GlobalConfig as config
+from db.path_config import PathConfig as config
 
 # 이미지가 놓인 루트 경로(예: 프로젝트 내 static/images). 실제 경로로 맞추세요.
 IMAGE_ROOT = os.path.join(os.path.dirname(__file__), "static", "images")

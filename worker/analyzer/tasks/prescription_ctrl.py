@@ -3,8 +3,8 @@ import webbrowser
 from typing import List, Dict, Optional
 from dataclasses import dataclass #, field
 
-from utils.test_ctrl import TestCtrl
-from utils.analysis_result import AnalysisResult
+from worker.analyzer.utils.test_ctrl import TestCtrl
+from worker.analyzer.utils.analysis_result import AnalysisResult
 
 
 class PrescriptionCtrl: # (metaclass=SingletonMeta):
@@ -15,8 +15,8 @@ class PrescriptionCtrl: # (metaclass=SingletonMeta):
             "must-have", "good-to-have", "good-to-record", "virus", "check"]}
 
         for severity in self.ps: 
-            html_fname = self.test_ctrl.make_html_fname(severity)
-            json_fname = self.test_ctrl.make_json_fname(severity)
+            html_fname = self.test_ctrl.make_test_data_html_fname(severity)
+            json_fname = self.test_ctrl.make_test_data_json_fname(severity)
             self.ps[severity] = {
                             "prescription": prescription[severity], 
                             "html_fname": html_fname,

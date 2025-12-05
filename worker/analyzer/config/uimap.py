@@ -11,7 +11,7 @@ Why screen coords? Avoid client/sizing/DPI ambiguity across windows/monitors.
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple, Literal
-
+import os
 from common.singleton import SingletonMeta
 from common.log import logger
 
@@ -34,7 +34,6 @@ class WindowMap:
     title: str
     cclass: str
     lt: Optional[Point] = None
-    # rb: Optional[Point] = None
     size: Optional[Size] = None
     ready_timeout: Optional[float] = 3.0   # time for this window to get visible
 
@@ -297,7 +296,8 @@ class WriteWindowMap(WindowMap):
 @dataclass
 class MainWindowMap(WindowMap):
     """Components on the MAIN window (Window border coords)."""
-    exe_path: str = r"C:\Program Files (x86)\medical\medical.exe"
+    exe_path: str = None
+    worker_exe_path: str = None
     name_prefix: str = "medical.exe"  # of app name
     backend: str = "win32"
     start_timeout: float = 15.0
@@ -305,11 +305,11 @@ class MainWindowMap(WindowMap):
     # Login
     user_id_textbox: TextBox = field(default_factory=lambda: TextBox(
         c=(82, 129), #lt=(48, 121), size=(73, 19), rb=(48+73, 121+19), # inner_size=(69, 15), 
-        text="admin", cclass="ThunderRT6TextBox"
+        text="user01", cclass="ThunderRT6TextBox"
     ))
     password_textbox: TextBox = field(default_factory=lambda: TextBox(
         c=(82, 157), # lt=(48, 148), size=(73, 19), rb=(48+73, 148+19), # inner_size=(69, 15), 
-        text="IDEA1234", cclass="ThunderRT6TextBox"
+        text="user01", cclass="ThunderRT6TextBox"
     ))
     login_button: Button = field(default_factory=lambda: Button(
         c=(150, 145), # lt=(130, 118), size=(46, 54), rb=(130+46, 118+54), 
@@ -429,6 +429,28 @@ class MainWindowMap(WindowMap):
             "prescription_list": self.prescription_list,
         }
 
+    def __post_init__(self): 
+        cand_medical_path = [
+            r"C:\Program Files (x86)\medical\medical.exe", 
+            r"C:\Program Files\medical\medical.exe"
+        ]
+        cand_freqgen_path = [
+            r"C:\Program Files\FreqGen\freqgen.exe", 
+            r"C:\Program Files (x86\FreqGen\freqgen.exe"
+        ]
+        
+        for p in cand_medical_path: 
+            if os.path.isfile(p): 
+                self.exe_path = p
+                break
+
+        for p in cand_freqgen_path: 
+            if os.path.isfile(p): 
+                self.worker_exe_path = p
+                break
+        
+        logger.info("=== %s", self.exe_path)
+        logger.info("=== %s", self.worker_exe_path)
 
 
 # ------------------------

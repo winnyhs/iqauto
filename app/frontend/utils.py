@@ -1,6 +1,6 @@
 from common.log import logger
 from common.json import load_json
-from db.config import GlobalConfig as config
+from db.path_config import PathConfig as config
 
 def load_options():
     try:

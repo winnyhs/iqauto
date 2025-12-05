@@ -3,33 +3,32 @@
 # Author: ChatGPT Final Version
 
 from __future__ import print_function
-import os, re, subprocess
 from typing import Tuple, Dict
 from PIL import Image, ImageChops, ImageOps
 import win32gui, win32ui, win32con
+import os, re, subprocess
 
-from config.config import config
 from common.log import logger
 from common.singleton import SingletonMeta
 
-ocr_config = {**config["common"], **config["ocr"]}
-tess_config = config["Tesseract"]
+from worker.analyzer.config.config import Config
+
 
 class TemplateOCR(metaclass=SingletonMeta):
 
-    def __init__(self): 
-        self.digit_template_dir = os.path.abspath(ocr_config["digit_template_dir"])
+    def __init__(self, config): # Config.ocr
+        self.digit_template_dir = config["digit_template_dir"]
         self.digit_templates = {}  # {"0": Image, "1": Image, ...}
 
         # Load digit_templates
         for fname in os.listdir(self.digit_template_dir):
             if fname.lower().endswith(".bmp"):
-                key = os.path.splitext(fname)[0]  # "0","1","2","+"
+                key = os.path.splitext(fname)[0]  # "0","1","2",..., "+"
                 path = os.path.join(self.digit_template_dir, fname)
                 self.digit_templates[key] = Image.open(path)
         # logger.info(f"[TemplateOCR] Loaded digit templates: {self.digit_templates.keys()}")
 
-        self.arrow_template_dir = os.path.abspath(ocr_config["arrow_template_dir"])
+        self.arrow_template_dir = config["arrow_template_dir"]
         self.arrow_templates = {}
         for fname in os.listdir(self.arrow_template_dir):
             if fname.lower().endswith(".bmp"): 
@@ -38,7 +37,7 @@ class TemplateOCR(metaclass=SingletonMeta):
                 self.arrow_templates[key] = Image.open(path)
         # logger.info(f"[TemplateOCR] Loaded right arrow templates: {self.arrow_templates.keys()}")
 
-        self.temp = os.path.abspath(ocr_config["temp_dir"])
+        self.temp = os.path.abspath(config["temp_dir"])
         if not os.path.isdir(self.temp):
             os.makedirs(self.temp)
         self.fname_prefix = "t_ocr_"
@@ -151,14 +150,14 @@ class TemplateOCR(metaclass=SingletonMeta):
 class OcrEngine(metaclass=SingletonMeta):
     _percent_re = re.compile(r"(\d{1,3})\s*%?")
 
-    def __init__(self, config):
+    def __init__(self, config): # Config.tesseract
         self.tess_exe = config["exe"]
         self.tess_lang = config.get("lang", "eng")
         self.tess_psm  = config.get("psm", "13")
         self.fname_prefix = config.get("fname_prefix", "ocr_")
 
-        self.temp = os.path.abspath("./temp")  # TODO. read config
-        if not os.path.isdir(self.temp):
+        self.temp = config.get("temp_dir", None)
+        if not os.path.isdir(self.temp): 
             os.makedirs(self.temp)
 
     #  Blue Background Detector
@@ -276,13 +275,14 @@ class OcrEngine(metaclass=SingletonMeta):
 
         # 2) Preprocess
         img = Image.open(fname_raw)
-        fname_clean = fname_raw.replace(".bmp", "_clean.bmp")
+        fname_clean = os.path.basename(fname_raw).replace(".bmp", "_clean.bmp")
+        fname_clean = os.path.join(self.temp, fname_clean)
         self.preprocess(img, fname_clean)
 
         # 3) OCR
         raw = self.run_tesseract(fname_clean) # return a OCR text
         val, pct = self.parse_percent(raw)
-        # logger.debug(f"[OCR] txt={raw} → val={val} pct={pct}")
+        logger.debug(f"[OCR] txt={raw} -> val={val} pct={pct}")
 
         try: 
             if fname == None and os.path.exists(fname_raw): 
@@ -308,35 +308,46 @@ class OcrEngine(metaclass=SingletonMeta):
 # ----------------------------------------------------------
 if __name__ == "__main__":
 
-    ocr = TemplateOCR(template_dir="templates")
+    # # Test #A
+    # ocr = TemplateOCR(template_dir="templates")
 
-    # Example: 3 positions
-    # (좌표는 예시 → 네가 사용하는 화면에 맞게 지정)
-    regions = [
-        (418,406, 425,420),  # hundredth
-        (424,406, 431,420),  # tenth
-        (430,406, 437,420),  # oneth 
-    ]
-    value = ocr.read_number(regions)
-    print("Final Number:", value)
+    # # Test #A.1: 
+    # # Example: 3 positions
+    # # (좌표는 예시 → 네가 사용하는 화면에 맞게 지정)
+    # regions = [
+    #     (418,406, 425,420),  # hundredth
+    #     (424,406, 431,420),  # tenth
+    #     (430,406, 437,420),  # oneth 
+    # ]
+    # value = ocr.read_number(regions)
+    # print("Final Number:", value)
 
-    for r in range(16): 
-        rect = (11, 51 + 16*r, 29, 66 + 16*r)
-        is_arrow = ocr.read_arrow(rect)
-        print(f"Right arrow: {'not' if is_arrow == False else ''} selected")
-        # input(f"Enter to go to {r}th row.")
+    # # Test #A.2: 
+    # for r in range(16): 
+    #     rect = (11, 51 + 16*r, 29, 66 + 16*r)
+    #     is_arrow = ocr.read_arrow(rect)
+    #     print(f"Right arrow: {'not' if is_arrow == False else ''} selected")
+    #     # input(f"Enter to go to {r}th row.")
 
+    # Test #B: 
     config = {
         "Tesseract": {
-            "exe": r"E:\App\Bin\Tesseract-OCR\tesseract.exe",
+            "exe": r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
             "lang": "eng",
             "psm":  "13",
-            "fname_prefix": "ocr_"
+            "fname_prefix": "ocr_", 
+            "temp_dir": r".\temp"
         }
     }
-    engine = OcrEngine(config)
+    engine = OcrEngine(config["Tesseract"])
 
-    # PROGRESS %
-    res_prog = engine.read_percent((274,407, 308,422), fname="out_prog.bmp")
-    print(res_prog)
+    # # Test #B.1 PROGRESS %
+    # res_prog = engine.read_percent((274,407, 308,422), fname="out_prog.bmp")
+    # print(res_prog)
+
+    # Test #B.2 
+    fname_clean = r"C:\analyzer\worker\temp\progress_tid1_rid1_A_clean.bmp"
+    raw = engine.run_tesseract(fname_clean) # return a OCR text
+    val, pct = engine.parse_percent(raw)
+    logger.debug(f"[OCR] txt={raw} → val={val} pct={pct}")
     

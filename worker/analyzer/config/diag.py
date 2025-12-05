@@ -1,36 +1,5 @@
 from typing import Literal 
 
-
-DiagTarget = {
-    "test" : {"code": ["A", ],
-              # "cat": ["신경", ]
-              }, 
-    "common" : 
-        {"code": ["A",], 
-        "cat" : [
-                "골격", "극성", "근건", "내분비", "뇌",        # 0
-                "면역", "바흐플라워", "병원균", "소화", "순환",  # 5
-                "신경", "암", "운동", "장부", "정서"           # 10
-                ]
-        }, 
-    "woman" : 
-        {"code": ["A"], 
-         "cat": ["생식", "DIET", "피부"] }, 
-}
-
-# Add directly from mdb
-SymtomTarget = {
-    "kids": [("소아", "성장"), ("소아", "학습")], 
-    "월경통": [  ("생식", "여성", "^월경통"), 
-                ("생식", "여성", "월경"), 
-                ("생식", "여성", "자궁"), 
-                ("생식", "여성", "Menstrual cramps")], 
-    "혈압": (("순환", "림프"), ("순환", "혈관"), ("순환", "혈압"), 
-            ("순환", "혈액"), ("순환", "혈행"),
-            ("운동", "관절", "^통풍")), 
-}
-
-
 PrescriptionType = Literal["MUST-HAVE", "GOOD-TO-HAVE", "GOOD-TO-RECORD", "VIRUS", "NEVER-MIND"]
 Policy = { 
     "MUST-HAVE": 35,      # 85

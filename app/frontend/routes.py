@@ -1,6 +1,6 @@
 from common.log import logger
 from common.json import load_json
-from db.config import GlobalConfig as config
+from db.path_config import PathConfig as config
 from .utils import load_options
 
 import json, os, datetime

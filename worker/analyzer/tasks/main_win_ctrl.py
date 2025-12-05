@@ -6,15 +6,17 @@ from typing import Optional, Tuple
 from pywinauto.keyboard import send_keys
 from pywinauto.mouse import click
 import time
-from config.uimap import UIMap, Component, WindowMap
 from common.log import logger
 from common.singleton import SingletonMeta
-from utils.proc_ctrl import ProcessControl
-from utils.win_ops import (
+
+from worker.analyzer.config.uimap import UIMap, Component, WindowMap
+from worker.analyzer.utils.proc_ctrl import ProcessControl
+from worker.analyzer.utils.input_ops import click_component_screen
+from worker.analyzer.utils.win_ops import (
     find_window_by_title, wait_win_state, bring_to_front, 
     find_sibling_popup
 )
-from utils.input_ops import click_component_screen
+
 
 
 class MainWinCtrl(metaclass=SingletonMeta):
@@ -25,18 +27,19 @@ class MainWinCtrl(metaclass=SingletonMeta):
         self.wmap.read_button.callback  = self.find_popup
         self.wmap.write_button.callback = self.find_popup
 
-        self.pc: ProcessControl = None
+        self.pctrl: ProcessControl = None  # main process control
         self.win = None # main window WindowSpecification 
                         # self.win.wrapper_object() can be  DialogWrapper, WindowWrapper, ButtonWrapper, EditWrapper, 등등
     
     def start(self): 
-        # 1. Start the process, if not running yet
-        self.pc = ProcessControl(self.wmap.exe_path).start()
+        # 1. Start the process. Kill and start the process, if already running
+        self.pctrl = ProcessControl(self.wmap.exe_path, self.wmap.worker_exe_path).start()
 
         # 2. Connect the window of the process
         win = find_window_by_title(self.wmap.title, self.wmap.backend, self.wmap.start_timeout)
         if win == None: 
             raise OSError(f"Failed to start {self.wmap.title} in {self.wmap.start_timeout}")
+        
         # 3. Wait for the process to be ready (exists and visible)
         wait_win_state(win, "exists ready", timeout=self.wmap.ready_timeout)
 

@@ -66,8 +66,11 @@ E:\medical\
         |
         +-- 배나라 
 #---------------------------------------------------------'''
-class __GlobalConfig(metaclass = SingletonMeta): 
-  def __init__(self, app_top = "C:\\analyzer", ext_top = None): # "E:\\analyzer"):
+class __PathConfig(metaclass = SingletonMeta): 
+  def __init__(self, 
+    app_top = "C:\\analyzer", 
+    tesseract_bin_path = r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe", 
+    ext_top = None): # "E:\\analyzer"):
     self.file = {
         "mdb_file": "MEDICAL.mdb", 
         "output_files": ["must-have.json", "good_to_have.json", "virus.json"]
@@ -84,6 +87,16 @@ class __GlobalConfig(metaclass = SingletonMeta):
       "user_profile_path": os.path.join(self.db_top, "user_profile.json"), 
       "test_case_path": os.path.join(self.db_top, "test_case.json"), 
     }
+
+    if os.path.isfile(tesseract_bin_path): 
+      self.tesseract_bin_path = tesseract_bin_path
+    elif os.path.isfile(r"C:\Program Files\Tesseract-OCR\tesseract.exe"): 
+      self.tesseract_bin_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    elif os.path.isfile(r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe"): 
+      self.tesseract_bin_path = r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe"
+    else: 
+      self.tesseract_bin_path = None
+      raise FileNotFound(f"Install Tesseract")
     
     self.backend_top = os.path.join(self.app_top, "backend")
     self.backend = {}
@@ -91,12 +104,16 @@ class __GlobalConfig(metaclass = SingletonMeta):
     self.worker_top = os.path.join(self.app_top, "worker")
     self.worker_drv = {
       "client_dir" : os.path.join(self.worker_top, "client"),
+      "test_data_dir": None,
+      "test_data_html_dir": None, 
+      "test_data_json_dir": None, 
+      "image_dir": None, 
+
+      "temp_dir"   : os.path.join(self.worker_top, "temp"), 
       "json_dir"   : os.path.join(self.worker_top, "temp", "json"),
-      "program_path" : os.path.join(self.worker_top, "temp", "json", "__analyzer_program.json"),
+      "program_path": os.path.join(self.worker_top, "temp", "json", "__analyzer_program.json"),
       "progress_dir": os.path.join(self.worker_top, "temp", "progress")
     }
-    self.test_top = None
-    self.image_top = None
     
     self.sys_drv_top = self.find_sys_dir_top()
     self.sys_drv = {
@@ -162,24 +179,23 @@ class __GlobalConfig(metaclass = SingletonMeta):
 
     # 1. Make worker\client\<client-name>\<test-date>\{html, json} and 
     #         worker\client\<client-name>\<test-date>\html\image
-    base = os.path.join(self.worker_drv["client_dir"], user_profile["name"])
-    os.makedirs(base, exist_ok=True)  # worker\client\kkk
-    base = os.path.join(base, user_profile["test_time"]) 
-    os.makedirs(base)  
-    logger.info("%s is created", base)
+    test_data_top = os.path.join(self.worker_drv["client_dir"], user_profile["name"])
+    os.makedirs(test_data_top, exist_ok=True)  # worker\client\kkk
+    test_data_top = os.path.join(test_data_top, user_profile["test_time"])
+    os.makedirs(test_data_top)
+    self.test_data_top = test_data_top
+    logger.info("%s is created as test data top", self.test_data_top)
     # Now, base directory is worker\client\kkk\2025-11-11T11-11
 
-    os.makedirs(os.path.join(base, "json"), exist_ok=True)  # worker\client\kkk\2025-11-11T11-11\json
-    os.makedirs(os.path.join(base, "html"), exist_ok=True)  # worker\client\kkk\2025-11-11T11-11\html
-    image_top = os.path.join(base, "html", "image")
-    os.makedirs(image_top) #, exist_ok=True)
-
-    # 1.2. Hang test_top and imag_top
-    self.test_top = base
-    self.image_top = image_top
+    self.worker_drv["test_data_json_dir"] = os.path.join(self.test_data_top, "json")
+    self.worker_drv["test_data_html_dir"] = os.path.join(self.test_data_top, "html")
+    self.worker_drv["image_dir"]          = os.path.join(self.test_data_top, "html", "image")
+    os.makedirs(self.worker_drv["test_data_json_dir"])  # worker\client\kkk\2025-11-11T11-11\json
+    os.makedirs(self.worker_drv["test_data_html_dir"])  # worker\client\kkk\2025-11-11T11-11\html
+    os.makedirs(self.worker_drv["image_dir"]) #, exist_ok=True)  
 
     # 2. Clean up worker\temp\{json, progress}
-    base = os.path.dirname(self.worker_drv["json_dir"])
+    base = self.worker_drv["temp_dir"]
     force_delete(base)                          # delete worker\temp
     os.makedirs(base)                           # create worker\temp
     os.makedirs(os.path.join(base, "json"))     # worker\temp\json
@@ -206,15 +222,22 @@ class __GlobalConfig(metaclass = SingletonMeta):
   def progress_path(self, tid): 
     return os.path.join(self.worker_drv["progress_dir"], str(tid) + '.json')
 
+  def get(self, owner = None): 
+    if owner.lower() == "worker": 
+      worker = {"top": self.worker_top}
+      worker.update(self.worker_drv)
+      return worker
+    return None
 
-GlobalConfig = __GlobalConfig()
+
+PathConfig = __PathConfig()
 
 
 
 if __name__ == "__main__": 
 
-  GlobalConfig.clean_temp()
+  PathConfig.clean_temp()
   # subprocess.call(r'cp .\output\must-have.json .\temp\json\must-have.json', shell=True)
   # subprocess.call(r'cp C:\Program Files (x86)\medical\MEDICAL.mdb E:\medical\temp\mdb\MEDICAL.mdb', shell=True)
 
-  GlobalConfig.reconfigure_drv("D", "F")
+  PathConfig.reconfigure_drv("D", "F")

@@ -9,20 +9,19 @@ from dataclasses import dataclass
 from typing import Optional
 import win32api, win32con, win32gui, time
 
-from config.uimap       import Component
 from common.singleton import SingletonMeta
 from common.log import logger
-from tasks.main_win_ctrl import MainWinCtrl
+from worker.analyzer.config.uimap        import Component
+from worker.analyzer.tasks.main_win_ctrl import MainWinCtrl
 
-from utils.win_ops import (
+from worker.analyzer.utils.win_ops import (
     find_sibling_popup,
 )
-from utils.input_ops import (
+from worker.analyzer.utils.input_ops import (
     click_component_screen,
     double_click_component_screen, 
     type_text, send_keys
 )
-
 
 class LoginTask(metaclass=SingletonMeta):
     def __init__(self, win_ctrl: MainWinCtrl):

@@ -7,7 +7,7 @@ from common.singleton import SingletonMeta
 from common.log import logger
 from common.json import save_json, load_json
 from common.sys import path_type, safe_copy
-from db.config import GlobalConfig
+from db.path_config import PathConfig
 
 from .sql import Sql
 from .db_ctrl import DbCtrl
@@ -325,7 +325,7 @@ if __name__ == "__main__":
         exit()
     prog_name = sys.argv[1]
 
-    c = GlobalConfig
+    c = PathConfig
     dst = c.worker_drv["json_dir"]
     src_dir = os.path.join(c.worker_drv["client_dir"], r"kkk\2025-11-18T22-43\json")
     src = os.path.join(src_dir, "must-have.json")

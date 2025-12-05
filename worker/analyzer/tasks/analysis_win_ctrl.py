@@ -1,36 +1,38 @@
 import time, re, os, shutil
 from typing import List, Dict, Tuple, Any, Union
 
-from config.config import config
-from config.uimap import UIMap, Component, Point, AnalysisGridMap, Rect
-from config.diag  import DiagTarget, PrescriptionType, VirusPolicy, Policy
-
 from common.singleton import SingletonMeta
 from common.log       import logger
 from common.json      import atomic_save_json
-from utils.analysis_result import AnalysisResult
-from utils.input_ops import (
+from worker.analyzer.config.config import Config
+from worker.analyzer.config.uimap  import UIMap, Component, Point, AnalysisGridMap, Rect
+from worker.analyzer.config.diag   import PrescriptionType, VirusPolicy, Policy
+from worker.analyzer.utils.analysis_result import AnalysisResult
+from worker.analyzer.utils.input_ops import (
     drag_left, click_stable_at, 
     get_text_at_point, set_text_at_point
 )
-from utils.ocr import TemplateOCR, OcrEngine
-from utils.test_ctrl import TestCtrl
+from worker.analyzer.utils.win_ops   import bring_to_front
+from worker.analyzer.utils.ocr       import TemplateOCR, OcrEngine
+from worker.analyzer.utils.test_ctrl import TestCtrl
 
-test_config = {**config["common"], **config["test"]}
-tess_config = {**config["common"], **config["Tesseract"]}
 
 class AnalysisGridCtrl(metaclass = SingletonMeta): 
-    def __init__(self, spec: AnalysisGridMap): 
+    def __init__(self, win, spec: AnalysisGridMap, config): 
         self.gmap = spec  # Grid Map
-        self.ocr_select = TemplateOCR()
+        self.ocr_select = TemplateOCR(config.ocr)
         self.test_ctrl = TestCtrl
+        self.win = win
     
     def find_selected_row(self) -> int: 
         for row in range(self.gmap.row_cnt):
-            is_selected = self.ocr_select.read_arrow(self.gmap.select_col.cell_rect(row), 
-                                        self.test_ctrl.make_temp_fname(f"arrow{row}"))
+            bring_to_front(self.win)
+            is_selected = self.ocr_select.read_arrow(
+                                    self.gmap.select_col.cell_rect(row), 
+                                    self.test_ctrl.make_image_fname(f"arrow{row}"))
             if is_selected == True: 
                 return row
+                
         # for debugging
         logger.error(f"Error: check arrow[0,15]_tid{self.test_ctrl.id}_rid{self.test_ctrl.rid}_*.bmp files")
         for row in range(self.gmap.row_cnt): 
@@ -38,6 +40,7 @@ class AnalysisGridCtrl(metaclass = SingletonMeta):
         return None
     
     def read_cell_text(self, p: Point, wait: float = 0.1) -> str:
+        bring_to_front(self.win)
         click_stable_at(p[0], p[1])
         return get_text_at_point(p[0], p[1])
     
@@ -64,11 +67,13 @@ class AnalysisGridCtrl(metaclass = SingletonMeta):
 
             x = (orect[0] + orect[2])//2
             y = (orect[1] + orect[3])//2  # 드래그 수직 위치: 타이틀 셀 중앙 y
+            bring_to_front(self.win)
             click_stable_at(x, y)         # for visible debugging
             # logger.debug(f"[DRAG] {name} ({(x0, y)})-> ({(x1, y)}) for {duration} in {steps} steps")
             time.sleep(0.5)
             
             try:
+                bring_to_front(self.win)
                 drag_left((x0, y), (x1, y), duration=duration, steps=steps)
             except Exception as e: 
                 logger.exception(f"{type(e).__name__}: {e}: title={spec}")
@@ -92,22 +97,20 @@ class AnalysisGridCtrl(metaclass = SingletonMeta):
         return fname
 
 
-
 class AnalysisWinCtrl(metaclass=SingletonMeta):
-    def __init__(self, win): 
+    def __init__(self, win, config):   # PathConfig
         self.wmap = UIMap["analysis"]  # analysis window map
         self.win = win  # window WindowSpecification 
                         # self.win.wrapper_object() can be  DialogWrapper, WindowWrapper, ButtonWrapper, EditWrapper, 등
         
-        self.grid_ctrl = AnalysisGridCtrl(self.wmap.grid)
+        self.grid_ctrl = AnalysisGridCtrl(self.win, self.wmap.grid, Config)
         self.prescription = {key: [] for key in [
             "must-have", "good-to-have", "good-to-record", "virus", "check"]} # List[AnalysisResult]
         self.wmap.exec_button.callback = self.read_match_percent
         self.iteration: int = 10
-        self.show_prescription: bool = False
-        self.fe = None  # TODO
-        self.ocr_progress = OcrEngine(tess_config)
-        self.ocr_match = TemplateOCR()
+        self.show_prescription: bool = True
+        self.ocr_progress = OcrEngine(Config.tesseract)
+        self.ocr_match = TemplateOCR(Config.ocr)
 
         self.test_ctrl = TestCtrl
 
@@ -118,21 +121,27 @@ class AnalysisWinCtrl(metaclass=SingletonMeta):
         time.sleep(8)  # usual time + small margin, that it took for the progress to reach 100%
 
         start = time.time()
-        timeout = 7
+        timeout = 4  
         is_100 = False
-        fname = self.test_ctrl.make_temp_fname("progress")
+        fname = self.test_ctrl.make_image_fname("progress")
         while time.time() < start + timeout: 
+            bring_to_front(self.win)
             progress = self.ocr_progress.read_percent(self.wmap.progress_region.rect, fname)
-            if progress["value"] == 100: 
+            # print("... %s", progress["value"])
+            if progress["text"] == r"[EEE" or len(progress["text"]) >=4 or \
+                progress["value"] == 100: 
+                # TODO: progress 가 ocr 실패된다. 이전버전은 잘 됐다. txt=[EEE --> val=None pct=False
                 is_100 = True
                 break
+            time.sleep(0.5)
         if is_100 == False: 
-            logger.error(f"ERROR: Completions took more than {timeout} sec. Increse!!! ")
+            logger.error(f"ERROR: Completions took more than {8+timeout} sec. Increse!!! ")
         time.sleep(0.5)  # wait more for the new match percent shows up
 
         # 2. Read the match percentage
         logger.debug(f"Start ocr-ing match percent: tid{self.test_ctrl.id} rid{self.test_ctrl.rid}")
-        fname = self.test_ctrl.make_temp_fname("match")
+        fname = self.test_ctrl.make_image_fname("match")
+        bring_to_front(self.win)
         match_percent = self.ocr_match.read_number(self.wmap.match_region.regions, fname)
         if isinstance(match_percent, int): 
             if 0 <= match_percent <= 100: 
@@ -170,11 +179,14 @@ class AnalysisWinCtrl(metaclass=SingletonMeta):
         self.click(self.wmap.option[test_type.lower()])
         
         # 2. Select the pulldown item and check that the pulldown item is configured
+        bring_to_front(self.win)
         edit = self.wmap.pulldown.edit
-        set_text_at_point(edit.c[0], edit.c[1], test_case) # type in edit
+        set_text_at_point(edit.c[0], edit.c[1], test_case)  # type in edit
+
         self.click(self.wmap.pulldown.arrow)                # select it and update grid area
         self.click(self.wmap.pulldown.selected, wait=1.0)
         self.click(self.wmap.pulldown.edit)                 # work-around the app bug (broken word)
+        bring_to_front(self.win)
         selected = get_text_at_point(edit.c[0], edit.c[1])  # check that test_case is selected
         if selected != test_case: 
             logger.error(f"No {test_case} under {test_type}: {selected} is selected instead")
@@ -279,12 +291,13 @@ class AnalysisWinCtrl(metaclass=SingletonMeta):
 
     def update_progress(self, result: AnalysisResult, finish_flag = False) -> None: 
         if finish_flag == True: # end of test
+            self.test_ctrl.setup_next_run()  # HACK To increment test id, to update the end oof test
             prog_data = {"finish_flag": True, "item": {}}
         else: 
-            prog_data = {"finish_flag": True, "item": result.as_dict()}
-            path = [self.test_ctrl.make_temp_fname("progress"),
-                    self.test_ctrl.make_image_fname("match")]
-            logger.info("path -> url: %s", path, url)
+            prog_data = {"finish_flag": False, "item": result.as_dict()}
+            prog_data["item"]["image"] = [self.test_ctrl.make_image_fname("progress"),
+                                        self.test_ctrl.make_image_fname("match")]
+            # logger.debug("image", prog_data["item"]["image"])
         
         tmp_path, prog_path = self.test_ctrl.make_progress_fname()
         atomic_save_json(prog_data, tmp_path, prog_path)
@@ -309,7 +322,7 @@ class AnalysisWinCtrl(metaclass=SingletonMeta):
          
         # 3. iterate analysis
         for _ in range(iters): 
-            self.test_ctrl.start_1run()
+            self.test_ctrl.setup_next_run()
 
             # 3.1. wait until progress gets 100% and read match percentage
             #      "bmp file name", or "int"
@@ -326,13 +339,19 @@ class AnalysisWinCtrl(metaclass=SingletonMeta):
 
             # 3.3. send prescription to te front-end
             if self.show_prescription: 
-                self.update_progress(row_data, finish = False)        
+                self.update_progress(row_data, finish_flag = False)        
     
-    def start(self, targets: Dict[str, List] = None, iters: int = 10): 
+    def start(self, test_cases, iters= 10): 
         '''Start analyzing '''
         # 1. Collect target to analyze. 
-        targets = DiagTarget[targets] if targets else DiagTarget["common"]
         self.iteration = iters
+        targets = {'code': [], 'cat': []}
+        for t in test_cases: 
+            if 'A' <= t <= 'Z': 
+                targets['code'].append(t)
+            else: 
+                targets['cat'].append(t)
+        logger.debug("targets: %s", targets)
         
         # 2. Test all test cases, case by case
         self.prescription_list: List[AnalysisResult] = list()
@@ -342,16 +361,11 @@ class AnalysisWinCtrl(metaclass=SingletonMeta):
                 continue
             
             for case in test_cases: 
+                logger.debug("Start a test case: %s", case)
                 self.run_1cat(test_type, case, self.iteration)
                 time.sleep(1.0)
         
         # 3. Report the end of test
-        self.test_ctrl.start_1run()  # To increment test id, to update the end oof test
-
         if self.show_prescription: 
             self.update_progress(None, finish_flag = True) 
 
-
-
-
-        

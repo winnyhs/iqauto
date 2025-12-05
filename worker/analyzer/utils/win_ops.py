@@ -13,7 +13,7 @@ from pywinauto.timings import wait_until_passes, TimeoutError as WaitTimeout
 from pywinauto.keyboard import send_keys
 
 from common.log import logger
-from config.uimap import Component, WindowMap
+from worker.analyzer.config.uimap import Component, WindowMap
 
 
 # DPI awareness (권장)

@@ -6,9 +6,9 @@
 """Input ops (screen coords only): mouse/keyboard and component-centric clicks."""
 from __future__ import annotations
 import time, ctypes
-from typing import Tuple
-
 import win32api, win32con, win32gui
+
+from typing import Tuple
 from pywinauto.mouse import move
 from pywinauto.keyboard import send_keys
 
