@@ -5,10 +5,11 @@ from common.singleton import SingletonMeta
 from common.log import logger
 
 
-class _TestCtrl(metaclass=SingletonMeta): 
-    def init(self, client: Dict, config) -> None: 
+class __TestCtrl(metaclass=SingletonMeta): 
+    def post_init(self, client: Dict, config) -> None: 
         self.client = client
         self.config = config # PathConfig.worker_drv
+        print("--- TestCtrl::config = %s" % self.config)
            
         self.id = 0
         self.type = None
@@ -73,4 +74,4 @@ class _TestCtrl(metaclass=SingletonMeta):
             logger.exception(f"{e}: {cur} --> {new}")
             return None
     
-TestCtrl = _TestCtrl()
+TestCtrl = __TestCtrl()

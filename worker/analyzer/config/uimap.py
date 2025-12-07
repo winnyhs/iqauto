@@ -14,6 +14,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Literal
 import os
 from common.singleton import SingletonMeta
 from common.log import logger
+from db.path_config import PathConfig
 
 # ------------------------
 # Basic types / aliases
@@ -296,8 +297,8 @@ class WriteWindowMap(WindowMap):
 @dataclass
 class MainWindowMap(WindowMap):
     """Components on the MAIN window (Window border coords)."""
-    exe_path: str = None
-    worker_exe_path: str = None
+    exe_path: str = PathConfig.sys_drv["exe_path"]
+    worker_exe_path: str = PathConfig.sys_drv["worker_exe_path"] # TODO: looks not needed
     name_prefix: str = "medical.exe"  # of app name
     backend: str = "win32"
     start_timeout: float = 15.0
@@ -428,29 +429,6 @@ class MainWindowMap(WindowMap):
             "program_list": self.program_list,
             "prescription_list": self.prescription_list,
         }
-
-    def __post_init__(self): 
-        cand_medical_path = [
-            r"C:\Program Files (x86)\medical\medical.exe", 
-            r"C:\Program Files\medical\medical.exe"
-        ]
-        cand_freqgen_path = [
-            r"C:\Program Files\FreqGen\freqgen.exe", 
-            r"C:\Program Files (x86\FreqGen\freqgen.exe"
-        ]
-        
-        for p in cand_medical_path: 
-            if os.path.isfile(p): 
-                self.exe_path = p
-                break
-
-        for p in cand_freqgen_path: 
-            if os.path.isfile(p): 
-                self.worker_exe_path = p
-                break
-        
-        logger.info("=== %s", self.exe_path)
-        logger.info("=== %s", self.worker_exe_path)
 
 
 # ------------------------

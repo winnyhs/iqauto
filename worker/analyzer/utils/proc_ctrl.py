@@ -9,6 +9,7 @@ from psutil    import Process
 from pywinauto import Application
 from common.singleton import SingletonMeta
 from common.log import logger
+from db.path_config import PathConfig
 
 try:
     from pywintypes import error as PyWinError  # pywin32 errors (e.g., winerror 740)
@@ -16,7 +17,7 @@ except Exception:
     PyWinError = OSError
 
 
-class ProcessControl(metaclass=SingletonMeta):
+class __ProcessControl(metaclass=SingletonMeta):
     """Minimal app launcher. Only starts the EXE when asked."""
     def __init__(self, exe_path:str, worker_exe_path, backend:str = "win32"):
         self.exe_path = exe_path
@@ -44,7 +45,7 @@ class ProcessControl(metaclass=SingletonMeta):
             if time.time() - start_time >= 2:
                 return None, None
             
-    def start(self) -> ProcessControl: 
+    def start(self) -> __ProcessControl: 
         cnt = self.kill_all()
         logger.info("Killed %s processes", cnt)
         if cnt > 0: 
@@ -78,7 +79,6 @@ class ProcessControl(metaclass=SingletonMeta):
         
         self.app = app
         self.process = process
-        return self
 
     def kill_all(self):
         cnt = 0
@@ -88,8 +88,10 @@ class ProcessControl(metaclass=SingletonMeta):
 
     def kill_by_exe_name(self, exe_path): 
         """
-        exe 파일의 full path에서 파일명만 추출한 뒤,
-        그 파일명을 prefix로 갖는 모든 프로세스를 kill한다.
+        - exe 파일의 full path에서 파일명만 추출한 뒤,
+          그 파일명을 prefix로 갖는 모든 프로세스를 kill한다.
+        - psutil을 사용하지 못 하는 환경에서 process kill 방법:  
+          os.system(f"taskkill /F /IM {WORKER_NAME}")
         """
         if not exe_path:
             return 0
@@ -107,6 +109,7 @@ class ProcessControl(metaclass=SingletonMeta):
                 # prefix match 판단
                 # 1) 프로세스 이름으로 판단
                 if pname.lower().startswith(prefix.lower()):
+                    logger.debug("%s, %s", pname, proc.info.get("pid", ""))
                     proc.kill()
                     cnt += 1
                     continue
@@ -122,3 +125,5 @@ class ProcessControl(metaclass=SingletonMeta):
 
         return cnt
 
+
+ProcessControl = __ProcessControl(PathConfig.sys_drv["exe_path"], PathConfig.sys_drv["worker_exe_path"])

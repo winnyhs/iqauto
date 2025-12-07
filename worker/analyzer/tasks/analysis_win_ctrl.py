@@ -42,6 +42,7 @@ class AnalysisGridCtrl(metaclass = SingletonMeta):
     def read_cell_text(self, p: Point, wait: float = 0.1) -> str:
         bring_to_front(self.win)
         click_stable_at(p[0], p[1])
+        bring_to_front(self.win)
         return get_text_at_point(p[0], p[1])
     
     def read_row(self, row: int) -> AnalysisResult: 

@@ -27,13 +27,13 @@ class MainWinCtrl(metaclass=SingletonMeta):
         self.wmap.read_button.callback  = self.find_popup
         self.wmap.write_button.callback = self.find_popup
 
-        self.pctrl: ProcessControl = None  # main process control
+        self.pctrl = ProcessControl  # main process control
         self.win = None # main window WindowSpecification 
                         # self.win.wrapper_object() can be  DialogWrapper, WindowWrapper, ButtonWrapper, EditWrapper, 등등
     
     def start(self): 
         # 1. Start the process. Kill and start the process, if already running
-        self.pctrl = ProcessControl(self.wmap.exe_path, self.wmap.worker_exe_path).start()
+        self.pctrl.start()
 
         # 2. Connect the window of the process
         win = find_window_by_title(self.wmap.title, self.wmap.backend, self.wmap.start_timeout)

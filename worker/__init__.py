@@ -9,6 +9,8 @@ import sys, os, shutil, time
 from datetime import date
 
 from common.log import logger
+from common.json import load_json
+from db.path_config import PathConfig
 
 from worker.analyzer.config.config import Config
 from worker.analyzer.config.uimap  import UIMap
@@ -18,6 +20,7 @@ from worker.analyzer.tasks.analysis_win_ctrl import AnalysisWinCtrl
 from worker.analyzer.tasks.prescription_ctrl import PrescriptionCtrl
 from worker.analyzer.utils.win_ops     import set_dpi_awareness
 from worker.analyzer.utils.test_ctrl   import TestCtrl
+from worker.analyzer.utils.proc_ctrl   import ProcessControl
 
 
 ''' TODO
@@ -31,10 +34,19 @@ from worker.analyzer.utils.test_ctrl   import TestCtrl
  
   3) DB Merge (client's DB and Automatic 분석 결과)
 '''
-def worker_main(client_profile, test_cases, iter_cnt, path_config):
+def worker_main(worker_param_path):
+    inparam = load_json(worker_param_path)
+    client_profile = inparam["client_profile"]
+    test_cases = inparam["test_cases"]
+    iter_cnt = inparam["iter_cnt"]
+
+    is_failed = True
 
     # 1. Get worker common config from the global path config
-    TestCtrl.init(client_profile, path_config.worker_drv)
+    # PathConfig.cleanup_and_provision_folder(client_profile)
+    PathConfig.post_init(client_profile)
+    print("--- PathConfig.worker_drv: %s" % PathConfig.worker_drv)
+    TestCtrl.post_init(client_profile, PathConfig.worker_drv)
     
     try: 
       set_dpi_awareness()  # screen 확대 비율, screen 선택 등
@@ -57,11 +69,10 @@ def worker_main(client_profile, test_cases, iter_cnt, path_config):
       aw = mw_ctrl.click(UIMap.main.analysis_button)  # analysis popup window
       if not aw:
         raise RuntimeError(f"Analysis popup window failed in starting") 
-      logger.info(f"Analysis starts")
-      aw_ctrl = AnalysisWinCtrl(aw, path_config)
-      # aw_ctrl.start(iters = 3)
+
       logger.info("Analysis starts with iter_cnt:%s, test cases: %s" % 
                     (iter_cnt, test_cases))
+      aw_ctrl = AnalysisWinCtrl(aw, PathConfig)
       aw_ctrl.start(test_cases, iter_cnt)
 
       # 5. Manage prescription
@@ -71,22 +82,29 @@ def worker_main(client_profile, test_cases, iter_cnt, path_config):
     except Exception as e:
        logger.exception(f"{e}")
        # test_top 에 FAILED.txt를 생성.
+       is_failed = True
+    
+    ProcessControl.kill_all()
+    time.sleep(1.0)
+
+    return is_failed
 
 
 
 if __name__ == "__main__": 
     from db.path_config import PathConfig
     import datetime
+    
+    is_failed = worker_main(PathConfig.worker_drv["worker_param_path"])
+    exit(is_failed)
 
-    user_profile = {"name": "kkk", "bdate": "1990-01-01", "sex": "여", 
-                    "weight": 55, "height": 170, 
-                    "test_time": datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S") }
-                    # "2025-12-04T14-23"}
-    PathConfig.clean_and_provision_folder(user_profile)
-
-    test_cases = ['A', '골격', '극성', '근건', '내분비', '뇌', '면역', 
-                    '바흐플라워','병원균', '소화', '순환', '신경', '암', 
-                    '오관', '운동', '장부', '장부보사본초', '정서', '차크라', '혈액']
-
-    worker_main(user_profile, test_cases, 10, PathConfig)
+    # user_profile = {"name": "kkk", "bdate": "1990-01-01", "sex": "여", 
+    #                 "weight": 55, "height": 170, 
+    #                 "test_time": datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S") }
+    #                 # "2025-12-04T14-23"}
+    # test_cases = ['A', '골격', '극성', '근건', '내분비', '뇌', '면역', 
+    #             '바흐플라워','병원균', '소화', '순환', '신경', '암', 
+    #             '오관', '운동', '장부', '장부보사본초', '정서', '차크라', '혈액']
+    # PathConfig.clean_and_provision_folder(user_profile)
+    # worker_main(user_profile, test_cases, 10, PathConfig)
 

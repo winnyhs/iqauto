@@ -71,6 +71,7 @@ class __PathConfig(metaclass = SingletonMeta):
     app_top = "C:\\analyzer", 
     tesseract_bin_path = r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe", 
     ext_top = None): # "E:\\analyzer"):
+
     self.file = {
         "mdb_file": "MEDICAL.mdb", 
         "output_files": ["must-have.json", "good_to_have.json", "virus.json"]
@@ -78,6 +79,7 @@ class __PathConfig(metaclass = SingletonMeta):
 
     self.app_top = app_top
 
+    # --- db
     self.db_top = os.path.join(self.app_top, "db")
     self.db = {
       "password": "I1D2E3A4", 
@@ -88,6 +90,7 @@ class __PathConfig(metaclass = SingletonMeta):
       "test_case_path": os.path.join(self.db_top, "test_case.json"), 
     }
 
+    # --- ocr
     if os.path.isfile(tesseract_bin_path): 
       self.tesseract_bin_path = tesseract_bin_path
     elif os.path.isfile(r"C:\Program Files\Tesseract-OCR\tesseract.exe"): 
@@ -96,11 +99,13 @@ class __PathConfig(metaclass = SingletonMeta):
       self.tesseract_bin_path = r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe"
     else: 
       self.tesseract_bin_path = None
-      raise FileNotFound(f"Install Tesseract")
+      raise FileNotFound(f"ERROR: Install Tesseract")
     
+    # --- backend
     self.backend_top = os.path.join(self.app_top, "backend")
     self.backend = {}
     
+    # --- service worker
     self.worker_top = os.path.join(self.app_top, "worker")
     self.worker_drv = {
       "client_dir" : os.path.join(self.worker_top, "client"),
@@ -111,15 +116,34 @@ class __PathConfig(metaclass = SingletonMeta):
 
       "temp_dir"   : os.path.join(self.worker_top, "temp"), 
       "json_dir"   : os.path.join(self.worker_top, "temp", "json"),
+      "progress_dir": os.path.join(self.worker_top, "temp", "progress"), 
       "program_path": os.path.join(self.worker_top, "temp", "json", "__analyzer_program.json"),
-      "progress_dir": os.path.join(self.worker_top, "temp", "progress")
+      "worker_param_path": os.path.join(self.worker_top, "temp", "json", "__worker_param.json")
     }
     
-    self.sys_drv_top = self.find_sys_dir_top()
-    self.sys_drv = {
-      "mdb_path" : os.path.join(self.sys_drv_top, self.file["mdb_file"])
-    }
+    # --- medical 
+    self.sys_drv_top = None
+    self.sys_drv = {}
+    for p in [r"C:\Program Files (x86)\medical\medical.exe", 
+              r"C:\Program Files\medical\medical.exe", 
+              r"C:\medical\medical.exe"]: 
+      if os.path.isfile(p): 
+        self.sys_drv_top = os.path.dirname(p)
+        self.sys_drv["mdb_path"] = os.path.join(self.sys_drv_top, self.file["mdb_file"]) 
+        self.sys_drv["exe_path"] = os.path.join(self.sys_drv_top, "medical.exe") 
+        break
+    if self.sys_drv_top is None: 
+      raise FileNotFoundError(f"medical.exe is not installed")
 
+    for p in [r"C:\Program Files\FreqGen\freqgen.exe", 
+              r"C:\Program Files (x86)\FreqGen\freqgen.exe"]: 
+      if os.path.isfile(p): 
+        self.sys_drv["worker_exe_path"] = p
+        break
+    if self.sys_drv.get("worker_exe_path", None) is None: 
+      raise FileNotFoundError(f"freqgen.exe is not installed")
+
+    # --- external drive like usb
     if ext_top is None: 
       name = choose_external_drive_name()
       self.ext_drv_top = name[0] + ":\\analyzer"
@@ -132,29 +156,6 @@ class __PathConfig(metaclass = SingletonMeta):
 
     # self.clean_and_provision(user_profile)
 
-
-  def find_sys_dir_top(self, sys_top = None): 
-    # 1. Configure the internal directory, if not provided under self.sysdrv["top_dir"]
-    cand = [
-      "C:\\Program Files\\medical", 
-      "C:\\Program Files (x86)\\medical",
-      "C:\\medical"
-    ]
-    mdb_file = "MEDICAL.mdb"
-    if sys_top == None:
-      for p in cand:
-        if os.path.isdir(p) and os.path.isfile(os.path.join(p, mdb_file)): 
-          return p
-      logger.error("ERROR: No medical program is installed")
-      return None
-
-    sys_top = os.path.abspath(sys_top)
-    if not os.path.isdir(sys_top) or \
-      not os.path.isfile(os.path.join(sys_top, mdb_file)):
-      logger.error("ERROR: No medical program is installed under %s", sys_top)
-      return None
-    else: 
-      return sys_top
 
   def reconfigure_drv(self, worker_drv_name = None, ext_drv_name = None): 
     if worker_drv_name is not None: 
@@ -175,7 +176,7 @@ class __PathConfig(metaclass = SingletonMeta):
           self.ext_drv[i] = ext_drv_name[0] + ":" + tail
         logger.info(json.dumps(self.ext_drv, indent=4, sort_keys=True))
 
-  def clean_and_provision_folder(self, user_profile):
+  def cleanup_and_provision_folder(self, user_profile):
 
     # 1. Make worker\client\<client-name>\<test-date>\{html, json} and 
     #         worker\client\<client-name>\<test-date>\html\image
@@ -218,6 +219,31 @@ class __PathConfig(metaclass = SingletonMeta):
 
     # for d in (json_dir, mdb_dir): 
     #   show_dir(d)
+
+  def post_init(self, user_profile): 
+    test_data_top = os.path.join(self.worker_drv["client_dir"], 
+                                user_profile["name"],
+                                user_profile["test_time"])
+    # worker\client\kkk\2025-11-11T11-11-11
+    self.test_data_top = test_data_top
+    self.worker_drv["test_data_json_dir"] = os.path.join(self.test_data_top, "json")
+    self.worker_drv["test_data_html_dir"] = os.path.join(self.test_data_top, "html")
+    self.worker_drv["image_dir"]          = os.path.join(self.test_data_top, "html", "image")
+
+  def post_init_ext_drv(self): 
+    # Clean up ext_drv
+    mdb_dir  = self.ext_drv["mdb_dir"]
+    try: 
+      force_delete(mdb_dir) # shutil.rmtree(d)
+      logger.info("%s is deleted", mdb_dir)
+    except Exception as e:
+      logger.exception("ERROR: %s: Failed in deleting %s", e, mdb_dir)
+
+    try:
+      os.makedirs(mdb_dir)
+      logger.info("%s is created", mdb_dir)
+    except Exception as e:
+      logger.exception("ERROR: %s: Failed in creating folder %s", e, mdb_dir)
 
   def progress_path(self, tid): 
     return os.path.join(self.worker_drv["progress_dir"], str(tid) + '.json')
