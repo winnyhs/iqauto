@@ -2,10 +2,10 @@ from typing import Literal
 
 PrescriptionType = Literal["MUST-HAVE", "GOOD-TO-HAVE", "GOOD-TO-RECORD", "VIRUS", "NEVER-MIND"]
 Policy = { 
-    "MUST-HAVE": 35,      # 85
-    "GOOD-TO-HAVE": 25,   # 75 
-    "GOOD-TO-RECORD": 1, # 70
-    "VIRUS": 15,          # 55
+    "MUST-HAVE": 80,      # 85
+    "GOOD-TO-HAVE": 75,   # 75 
+    "GOOD-TO-RECORD": 70, # 70
+    "VIRUS": 55,          # 55
 } 
 
 CovidVacinSideEffectPolicy = {

@@ -319,24 +319,24 @@ if __name__ == "__main__":
     drive = os.path.splitdrive(os.getcwd())[0]
     logger.info("Running on %s", drive)
 
-    # logger.debug(sys.argv, flush=True)
-    if len(sys.argv) < 2: 
-        logger.error("Usage Example) python -m worker.mdb.program_ctrl test5")
-        exit()
-    prog_name = sys.argv[1]
+    # # logger.debug(sys.argv, flush=True)
+    # if len(sys.argv) < 2: 
+    #     logger.error("Usage Example) python -m worker.mdb.program_ctrl test5")
+    #     exit()
+    # prog_name = sys.argv[1]
 
     c = PathConfig
-    dst = c.worker_drv["json_dir"]
-    src_dir = os.path.join(c.worker_drv["client_dir"], r"kkk\2025-11-18T22-43\json")
-    src = os.path.join(src_dir, "must-have.json")
-    shutil.copy2(src, dst)
-    src = os.path.join(src_dir, "good-to-have.json")
-    shutil.copy2(src, dst)
-
-    dst = c.ext_drv["mdb_path"]
-    src = c.sys_drv["mdb_path"]
+    # dst = c.worker_drv["json_dir"]
+    # src_dir = os.path.join(c.worker_drv["client_dir"], r"kkk\2025-12-08T00-31-25\json")
+    # src = os.path.join(src_dir, "must-have.json")
     # shutil.copy2(src, dst)
-    safe_copy(src, dst)
+    # src = os.path.join(src_dir, "virus.json")
+    # shutil.copy2(src, dst)
+
+    # # dst = c.ext_drv["mdb_path"]
+    # # src = c.sys_drv["mdb_path"]
+    # # # shutil.copy2(src, dst)
+    # # safe_copy(src, dst)
 
 
     p = ProgramCtrl(c)
@@ -348,42 +348,51 @@ if __name__ == "__main__":
     # p.export_data_table(db)
     # db.Close()
 
-    # 2. Build the program from the analysis result json and 
-    #    the program is saved as c.worker_drv["program_path"]
-    p.build_1program(["must-have.json", "good-to-have.json"], prog_name)
-
-    # # 3. Insert the program into the system mdb
+    # 2. Export the program table (M_HISTORY) to the external driver
+    program_list = ["처방:기본"]
     db = p.sys_db_ctrl.open_db()
-    p.insert_from_json(db, [c.worker_drv["program_path"]])
-    db.Close()
-
-    # 4. Export the program table (M_HISTORY) to the external driver
-    program_list = ["기억2", "test4"]
-    db = p.sys_db_ctrl.open_db()
-    json_data, path = p.export_programs(db, program_list, "exported_programs.json")
+    json_data, path = p.export_programs(db, program_list, "basic1.json")
     db.Close()
     logger.info("%s directory: %s", c.worker_drv["json_dir"], os.listdir(c.worker_drv["json_dir"]))
 
-    # --- DO delete some program from the system mdb --- 
-    input("Enter when ready: ")
 
-    # 5. Import the programs that are not in the system mdb
-    json_list = ["exported_programs.json"]
-    db = p.ext_db_ctrl.open_db()
-    p.insert_from_json(db, json_list)
-    db.Close()
+    # # 2. Build the program from the analysis result json and 
+    # #    the program is saved as c.worker_drv["program_path"]
+    # p.build_1program(["must-have.json", "virus.json"], prog_name)
 
-    input("Enter when ready: ")
+    # # 3. Insert the program into the system mdb
+    # db = p.sys_db_ctrl.open_db()
+    # p.insert_from_json(db, [c.worker_drv["program_path"]])
+    # db.Close()
 
-    # 6. Put back the updated MEDICAL.mdb
-    src = c.sys_drv["mdb_path"]
-    dst = c.sys_drv["mdb_path"] + ".backup"
-    safe_copy(src, dst)
+    # 4. Export the program table (M_HISTORY) to the external driver
+    # program_list = ["처방:기본1"]
+    # db = p.sys_db_ctrl.open_db()
+    # json_data, path = p.export_programs(db, program_list, "exported_programs.json")
+    # db.Close()
+    # logger.info("%s directory: %s", c.worker_drv["json_dir"], os.listdir(c.worker_drv["json_dir"]))
 
-    input("Enter when ready: ")
+    # Rname program_list to 
+    # # --- DO delete some program from the system mdb --- 
+    # input("Enter when ready: ")
+
+    # # 5. Import the programs that are not in the system mdb
+    # json_list = ["exported_programs.json"]
+    # db = p.ext_db_ctrl.open_db()
+    # p.insert_from_json(db, json_list)
+    # db.Close()
+
+    # input("Enter when ready: ")
+
+    # # 6. Put back the updated MEDICAL.mdb
+    # src = c.sys_drv["mdb_path"]
+    # dst = c.sys_drv["mdb_path"] + ".backup"
+    # safe_copy(src, dst)
+
+    # input("Enter when ready: ")
     
-    src = c.ext_drv["mdb_path"]
-    dst = c.sys_drv["mdb_path"]
-    safe_copy(src, dst)
+    # src = c.ext_drv["mdb_path"]
+    # dst = c.sys_drv["mdb_path"]
+    # safe_copy(src, dst)
 
 
