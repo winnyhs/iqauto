@@ -3,13 +3,10 @@
 {% block content %}
 
 {# Jinja 변수로 바로 사용 #}
-<!-- {% set test_id = options.test_id %} -->
 {% set profile = options.user_profile or {} %}
 {% set test_cases = options.test_cases or [] %}
 
 <h2>분석 진행 상황</h2>
-<!-- <p>Run ID: <code id="test_id">{{ test_id }}</code></p> -->
-
 
 
 <!-- 선택된 사용자/테스트 요약 -->
@@ -19,10 +16,20 @@
     <span id="prof_height"></span>cm / <span id="prof_weight"></span>kg)</div>
   <div style="margin-top:6px;"><b>테스트 시간:</b> <span id="test_time"></span></div>
   <div style="margin-top:6px;"><b>요청 테스트:</b> <span id="test_cases_list"></span></div>
+  <div style="margin-top:6px;"><b>진행 상황:</b> <span id="progress"></span></div>
 </div>
 
 <!-- 결과 테이블 -->
 <style>
+  .blink {
+      color: blue;
+      animation: blinkAnim 1.5s step-start infinite;
+  }
+  @keyframes blinkAnim {
+      50% {
+          opacity: 0;
+      }
+  }
   table {border-collapse: collapse; margin: 10px 0; font-size: 14px;}
   th, td {border: 1px solid #444; padding: 4px 8px;}
   th {background-color: #ddd;}
@@ -66,6 +73,20 @@
   console.log("test_id :", testId);
   console.log("userProfile:", userProfile);
   console.log("testCase:", testCase);
+  let isFinished = false; 
+
+  
+  function updateProgress() {
+    const el = document.getElementById('progress');
+    console.log("---updateProgress is called with", isFinished)
+    if (isFinished === true) {
+        el.textContent = '진단완료';
+        el.classList.add('blink');
+    } else {
+        el.textContent = '진행중';
+        el.classList.add('blink');
+    }
+  }
 
   // 요약 표시
   (function renderSummary() {
@@ -78,6 +99,7 @@
     document.getElementById('test_time').textContent   = (p.test_time ?? '-');
     const t = testCase;
     document.getElementById('test_cases_list').textContent = t.length ? t.join(', ') : '(없음)';
+    updateProgress();
   })();
 
   // --------- 결과 표시 유틸 ----------
@@ -154,6 +176,7 @@
 
   async function tick() {
     if (!isPolling) return;
+    if (isFinished) {isPolling = false; return}
 
     const user_profile = userProfile;
     const req = {
@@ -181,8 +204,10 @@
         nextTestId = (res.test_id_end|0) + 1;
       }
       if (res.finish_flag === true) {
-        isPolling = false;
-        return; // 종료
+        // isPolling = false;
+        isFinished = true;
+        updateProgress();
+        // return; // 종료
       }
       // 성공 시 지연 복구
       delayMs = 15000;

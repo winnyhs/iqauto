@@ -6,7 +6,8 @@ from common.log import logger
 from common.json import load_json, save_json, atomic_save_json
 
 from worker import worker_main
-from .worker_mon import read_worker_stdout, monitor_worker_process
+from worker.mdb import insert_program
+from .worker_mon import read_worker_stdout, monitor_worker_process, worker_state
 
 
 
@@ -32,7 +33,7 @@ def analysis_start(request):
     # logger.debug("--- progress_dir: %s", PathConfig.worker_drv["progress_dir"])
     # logger.debug("--- image_dir: %s", PathConfig.worker_drv["image_dir"])
 
-    # 3. Call API to trigger worker main thread
+    # 3. Call API to trigger worker process
     worker_param = {"client_profile": client_profile,
                     "test_cases": test_cases, 
                     "iter_cnt": run_count}
@@ -76,17 +77,16 @@ def analysis_status_post(request):
     data = request.get_json(force=True)
     test_id = int(data.get("test_id", 0))
     client_profile = data.get("user_profile")
-    logger.info("    test_id=%s", test_id)
+    logger.info(" request the result of test_id=%s", test_id)
     
     config = current_app.config.get("path_config", None)
-    print("-------- current_app.config['path_config'] = %s", config)
 
     progress_dir = PathConfig.worker_drv["progress_dir"]
     item_list = []
     path_list = []
     for tid in range(test_id, test_id + 10): 
         progress_path = PathConfig.progress_path(tid)
-        print("----- %s" % progress_path)
+        # print("----- %s" % progress_path)
         if not os.path.isfile(progress_path): # no more progress yet
             test_id_end = tid - 1
             finish_flag = False
@@ -113,6 +113,17 @@ def analysis_status_post(request):
                     "items": item_list}
     for p in path_list: 
         os.remove(p)
+    
+    # At Finish,
+    # - wait for medical.exe to be terminated and add the prescription into MEDICAL.mdb
+    # - display its finished on the html page
+    if finish_flag == True: 
+        while worker_state["running"] == True: 
+            time.sleep(0.5)
+        # worker process is terminated completely, which means medical app has terminated already
+        insert_program(client_profile, ["must-have.json"], 
+                        client_profile["name"] + client_profile["test_time"][:10])
+        # TODO: run medical.exe script, upto open Read Popup Window
     
     return progress_data
 

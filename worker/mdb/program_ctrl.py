@@ -14,7 +14,7 @@ from .db_ctrl import DbCtrl
 
 
 class ProgramCtrl(metaclass = SingletonMeta): 
-    def __init__(self, global_config): 
+    def __init__(self, global_config, client_profile): 
         self.cfg = global_config
         self.sql = Sql
 
@@ -35,8 +35,9 @@ class ProgramCtrl(metaclass = SingletonMeta):
         # Hash table for data table
         self.prefix_len = 24  # cat2's string length to compare
         # For a program, htime is fixed as today's 00:00:00.000000
-        self.htime = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-
+        # self.htime = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        self.htime = client_profile["test_time"][:10]
+        
     @staticmethod # Remove all white spaces and the get the prefix of <len> length
     def str_normalize(s, len):
         # Normalize Korean/English text for matching while preserving () , [] {}.
@@ -151,6 +152,18 @@ class ProgramCtrl(metaclass = SingletonMeta):
         logger.info("%s rows in M_DATA table are saved in %s", \
             len(json_data), self.cfg.db["data_table_path"])
     
+    def provision_basic_program(self, basic_file, htime, prog_name): 
+        if basic_file is not None: 
+            basic_program_path = os.path.join(self.cfg.db_top, basic_file)
+
+            basic_program_data = load_json(basic_program_path)
+            for data in basic_program_data: 
+                data['HTIME'] = DbCtrl.normalize_value(htime)
+                data['DESP'] = prog_name
+            return basic_program_data
+        else: 
+            return []
+
     def _build_1program(self, data_table_hash, analysis_data, prog_name): 
         # Convert analysis json data into a program json data
         logger.info("Build a program for the analysis result...") #, flush=True)
@@ -194,7 +207,7 @@ class ProgramCtrl(metaclass = SingletonMeta):
         return added_row_cnt, added_list, skipped_json_cnt, skipped_list
 
     # Build a program for the analysis results
-    def build_1program(self, analysis_file_list, prog_name):
+    def build_1program(self, analysis_file_list, prog_name, basic_file = "basic1.json"):
         # 1) Read table M_DATA
         logger.info(f"Loading data table, M_DATA, s...") #, flush=True)
         data_table = load_json(self.cfg.db["data_table_path"])
@@ -203,9 +216,14 @@ class ProgramCtrl(metaclass = SingletonMeta):
         logger.info("Building hash table for fast exact matching...") # , flush=True)
         data_table_hash = self.build_hash(data_table, self.prefix_len)  # 24 characters only
 
+        # 3) Add the basic program first
         program_data = []
+        if basic_file is not None: 
+            program_data.extend(self.provision_basic_program(basic_file, self.htime, prog_name))
+
+        # 4) Add the new program now
         for af in analysis_file_list:
-            # 3) Read analysis result data, that is new prescription to add into M_HISTORY
+            # 4.1) Read analysis result data, that is new prescription to add into M_HISTORY
             logger.info("Loading analysis result, %s, ...", af) #, flush=True)
             af_path = self._get_json_path(None, af)
             af_data = load_json(af_path)
@@ -213,7 +231,7 @@ class ProgramCtrl(metaclass = SingletonMeta):
                 logger.info("    None in there. Skip...")
                 continue
 
-            # 4) Build a program for the analysis result
+            # 4.2) Build a program for the analysis result
             result = self._build_1program(data_table_hash, af_data, prog_name)
             program_data.extend(result[1])
 
@@ -237,7 +255,7 @@ class ProgramCtrl(metaclass = SingletonMeta):
             logger.info("Table %s gets empty", table_name)
     
     # Insert a dict data into a table
-    def insert(self, db, table_name, table_ddl, json_data):
+    def xxinsert(self, db, table_name, table_ddl, json_data):
         """
         Insert rows from json_data into DAO table without using transactions.
         Compatible with all Jet/DAO modes, including cases where BeginTrans() fails.
@@ -278,6 +296,55 @@ class ProgramCtrl(metaclass = SingletonMeta):
             # Execute immediately (auto-commit mode)
             db.Execute(sql)
 
+    def insert(self, db, table_name, table_ddl, json_data):
+        """
+        Insert rows from json_data into DAO table using stable column order 
+        (matching DDL definition) to ensure consistent behavior with Jet 3.5.
+        """
+        # DDL 순서로 컬럼 목록을 확보
+        # ddl_cols = [field["name"] for field in table_ddl["fields"]]
+
+        cnt = 0
+        for row in json_data:
+            cols = []
+            vals = []
+
+            # JSON 순서가 아니라 DDL 순서대로 값을 구성
+            for col in table_ddl:
+                if col not in row:
+                    continue  # 혹시 JSON에 없는 경우 skip
+
+                v = DbCtrl.restore_value(row[col], table_ddl[col])
+                cols.append(col)
+                vals.append(v)
+
+            # SQL 생성
+            col_list = ", ".join(cols)
+
+            # Build VALUES part
+            val_list = []
+            for v in vals:
+                if v is None:
+                    val_list.append("NULL")
+                elif isinstance(v, (int, float)):
+                    val_list.append(str(v))
+                elif isinstance(v, (datetime.datetime, datetime.date)):
+                    val_list.append("#%04d-%02d-%02d 00:00:00#" % (v.year, v.month, v.day))
+                else:
+                    s = str(v).replace("'", "''")
+                    val_list.append("'" + s + "'")
+
+            val_expr = ", ".join(val_list)
+
+            sql = "INSERT INTO %s (%s) VALUES (%s)" % (
+                table_name, col_list, val_expr
+            )
+            if cnt < 3:
+                logger.debug("--- %s", sql)
+                cnt += 1
+            # Execute immediately (auto-commit mode)
+            db.Execute(sql)
+
     # Insert multiple program files into the program table of the db
     def insert_from_json(self, db, json_path_list):
         for path in json_path_list: 
@@ -290,7 +357,7 @@ class ProgramCtrl(metaclass = SingletonMeta):
             program_table_ddl = {f["name"]:f["type"] for f in ddl["fields"]}
 
             self.insert(db, self.program_table, program_table_ddl, data)
-            logger.info("%s rows are inserted into %s from %s", \
+            logger.info("%s rows are inserted into %s, from %s", \
                 len(data), self.program_table, path)
 
     # Export multiple programs from the program table of the db
@@ -319,11 +386,11 @@ if __name__ == "__main__":
     drive = os.path.splitdrive(os.getcwd())[0]
     logger.info("Running on %s", drive)
 
-    # # logger.debug(sys.argv, flush=True)
-    # if len(sys.argv) < 2: 
-    #     logger.error("Usage Example) python -m worker.mdb.program_ctrl test5")
-    #     exit()
-    # prog_name = sys.argv[1]
+    # logger.debug(sys.argv, flush=True)
+    if len(sys.argv) < 2: 
+        logger.error("Usage Example) python -m worker.mdb.program_ctrl test5")
+        exit()
+    prog_name = sys.argv[1]
 
     c = PathConfig
     # dst = c.worker_drv["json_dir"]
@@ -343,44 +410,42 @@ if __name__ == "__main__":
 
     # logger.debug("worker_drv['json_dir'] : %s", os.listdir(c.worker_drv["json_dir"]))
 
-    # 1. export the program table as json file
+    # # 1. export the program table as json file
     # db = p.sys_db_ctrl.open_db()
     # p.export_data_table(db)
     # db.Close()
 
-    # 2. Export the program table (M_HISTORY) to the external driver
-    program_list = ["처방:기본"]
-    db = p.sys_db_ctrl.open_db()
-    json_data, path = p.export_programs(db, program_list, "basic1.json")
-    db.Close()
-    logger.info("%s directory: %s", c.worker_drv["json_dir"], os.listdir(c.worker_drv["json_dir"]))
-
-
-    # # 2. Build the program from the analysis result json and 
-    # #    the program is saved as c.worker_drv["program_path"]
-    # p.build_1program(["must-have.json", "virus.json"], prog_name)
-
-    # # 3. Insert the program into the system mdb
-    # db = p.sys_db_ctrl.open_db()
-    # p.insert_from_json(db, [c.worker_drv["program_path"]])
-    # db.Close()
-
-    # 4. Export the program table (M_HISTORY) to the external driver
+    # # 2. Export the program table (M_HISTORY) to the external driver
     # program_list = ["처방:기본1"]
     # db = p.sys_db_ctrl.open_db()
-    # json_data, path = p.export_programs(db, program_list, "exported_programs.json")
+    # json_data, path = p.export_programs(db, program_list, "basic1.json")
+    # db.Close()
+    # logger.info("%s directory: %s", c.worker_drv["json_dir"], os.listdir(c.worker_drv["json_dir"]))
+    # 
+    # program_list = ["처방:기본"]
+    # db = p.sys_db_ctrl.open_db()
+    # json_data, path = p.export_programs(db, program_list, "basic1.json")
     # db.Close()
     # logger.info("%s directory: %s", c.worker_drv["json_dir"], os.listdir(c.worker_drv["json_dir"]))
 
-    # Rname program_list to 
+    # 2. Build the program from the analysis result json and 
+    #    the program is saved as c.worker_drv["program_path"]
+    # p.build_1program(["must-have.json", "virus.json"], prog_name)
+
+    # 3. Insert the program into the system mdb
+    db = p.sys_db_ctrl.open_db()
+    p.insert_from_json(db, [c.worker_drv["program_path"]])
+    db.Close()
+
+    # # Rname program_list to 
     # # --- DO delete some program from the system mdb --- 
     # input("Enter when ready: ")
 
-    # # 5. Import the programs that are not in the system mdb
-    # json_list = ["exported_programs.json"]
-    # db = p.ext_db_ctrl.open_db()
-    # p.insert_from_json(db, json_list)
-    # db.Close()
+    # 5. Import the programs that are not in the system mdb
+    json_list = ["exported_programs.json"]
+    db = p.ext_db_ctrl.open_db()
+    p.insert_from_json(db, json_list)
+    db.Close()
 
     # input("Enter when ready: ")
 

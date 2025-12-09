@@ -53,7 +53,7 @@ def monitor_worker_process(proc):
         result = "crash"
 
     _set_state(
-        running=result,
-        exit_code=exit_code
+        running=False,
+        exit_code=result
     )
 

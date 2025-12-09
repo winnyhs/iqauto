@@ -79,13 +79,16 @@ def worker_main(worker_param_path):
       ps = PrescriptionCtrl(client_profile, aw_ctrl.prescription)
       ps.show()
 
+      # 6. Convert the Prescription to a program and add it to mdb, 
+      #    that is handed over it to backend
+
     except Exception as e:
        logger.exception(f"{e}")
        # test_top 에 FAILED.txt를 생성.
        is_failed = True
     
     ProcessControl.kill_all()
-    time.sleep(1.0)
+    time.sleep(2.0)  # wait for medical.exe and freqgen.exe to be terminated completely
 
     return is_failed
 

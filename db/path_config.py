@@ -121,7 +121,7 @@ class __PathConfig(metaclass = SingletonMeta):
       "worker_param_path": os.path.join(self.worker_top, "temp", "json", "__worker_param.json")
     }
     
-    # --- medical 
+    # --- medical app
     self.sys_drv_top = None
     self.sys_drv = {}
     for p in [r"C:\Program Files (x86)\medical\medical.exe", 
@@ -230,7 +230,7 @@ class __PathConfig(metaclass = SingletonMeta):
     self.worker_drv["test_data_html_dir"] = os.path.join(self.test_data_top, "html")
     self.worker_drv["image_dir"]          = os.path.join(self.test_data_top, "html", "image")
 
-  def post_init_ext_drv(self): 
+  def cleanup_ext_drv(self, do_clean = False): 
     # Clean up ext_drv
     mdb_dir  = self.ext_drv["mdb_dir"]
     try: 
