@@ -1,0 +1,80 @@
+[
+  {
+    "percentage": 74,
+    "test_id": 6,
+    "test_run_id": 6,
+    "test_case": "A",
+    "cat": "병원균",
+    "subcat": "곰팡이",
+    "description": "아스페르길루스속 테레우스(기관지와 폐의 감염과 이따금 관련되는 사상균)",
+    "code": "A0059002",
+    "prescription": null,
+    "part": "",
+    "fname": null
+  },
+  {
+    "percentage": 78,
+    "test_id": 71,
+    "test_run_id": 1,
+    "test_case": "병원균",
+    "cat": "병원균",
+    "subcat": "바이러스",
+    "description": "황 열병(간, 신장, 심장과 전 위장관에 손상을 초래할 수 있는 중증인 바이러스의 감염)",
+    "code": "A1012001",
+    "prescription": null,
+    "part": "",
+    "fname": null
+  },
+  {
+    "percentage": 58,
+    "test_id": 73,
+    "test_run_id": 3,
+    "test_case": "병원균",
+    "cat": "병원균",
+    "subcat": "매독",
+    "description": "매독",
+    "code": "D0187001",
+    "prescription": null,
+    "part": "",
+    "fname": null
+  },
+  {
+    "percentage": 56,
+    "test_id": 77,
+    "test_run_id": 7,
+    "test_case": "병원균",
+    "cat": "병원균",
+    "subcat": "캔디다",
+    "description": "캔디다 트로피칼리스",
+    "code": "A0182001",
+    "prescription": null,
+    "part": "",
+    "fname": null
+  },
+  {
+    "percentage": 67,
+    "test_id": 79,
+    "test_run_id": 9,
+    "test_case": "병원균",
+    "cat": "병원균",
+    "subcat": "포도상구균",
+    "description": "포도상구균 감염(또한 다른 포도상 구균 주파수를 봅니다)",
+    "code": "A0894014",
+    "prescription": null,
+    "part": "",
+    "fname": null
+  },
+  {
+    "percentage": 68,
+    "test_id": 168,
+    "test_run_id": 8,
+    "test_case": "호흡",
+    "cat": "호흡",
+    "subcat": "감기",
+    "description": "인플루엔자 바이러스 1991에서1992 ",
+    "code": "A0546020",
+    "prescription": null,
+    "part": "",
+    "fname": null
+  }
+]
