@@ -3,12 +3,12 @@ setlocal
 
 :: ---------------------------------------------
 :: - MUST save this file as ANSI (Windows 1252)
-:: - How to create install.sed:
+:: - How to create install.sed newly and install.exe accordingly:
 ::   - Win + R --> iexpress.exe --> save sed under THE SAME folder
 ::   - Human-generated version is not accepted by iexpress 
 ::   - To identify the install file, type install.cmd, 
 ::     do not browse the pull-down option
-:: - How to create install.exe in cmd: 
+:: - How to create install.exe again (with the existing install.sed) in cmd: 
 ::   iexpress /n install.sed
 :: ---------------------------------------------
 
