@@ -53,13 +53,17 @@ echo.
 :: =====================================================
 ::  AHK COMPILE SECTION (your logic)
 :: =====================================================
-"..\AHK\Ahk2Exe.exe" ^
-  /in "start_medical.ahk" /out "start_medical.exe" /base "..\AHK\ANSI 32-bit.bin"
-::  /icon "icon.ico" ^
-:: "..\AHK\Ahk2Exe.exe" /in "start_medical.ahk" /out "auto_start.exe" /base "..\AHK\ANSI 32-bit.bin"
+"..\bin\Ahk2Exe.exe" ^
+  /in "start_medical.ahk" /out "start_medical.exe" /icon "medical.ico" ^
+  /base "..\bin\ANSI 32-bit.bin"
+:: "..\bin\Ahk2Exe.exe" /in "start_medical.ahk" /out "auto_start.exe" /base "..\bin\ANSI 32-bit.bin"
 
 echo Compile Completed!
 echo.
+
+copy ".\start_medical.exe" "..\start_medical_installer\" /Y
+echo Copy completed: start_medical.exe into start_medical_installer
+
 
 :: pause
 :: exit /b
