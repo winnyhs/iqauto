@@ -7,7 +7,7 @@ Installer of start_medical.exe
   - Run start_medical.exe whenever logging in the system
 
 * start_medical.sed : 
-  - MUST be saved with ANSI format [✔s]
+  - MUST be saved with ANSI (Windows 1252) format [✔]
   - iexpress descriptor to make the install image
   - the way to create a new file and generate install.exe accordingly
     - Win + R --> iexpress.exe --> save sed under THE SAME folder
